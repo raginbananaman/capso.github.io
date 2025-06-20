@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // CONFIGURATION
     // =================================================================
     // IMPORTANT: REPLACE THIS WITH YOUR ACTUAL, DEPLOYED WEB APP URL
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwWwQtADpG0-MNeYLEsGvVAsvGUWoG3Zm20opt3LvXGRi-wNg1rzpeQfZDgw8VYSJuFpg/exec"; 
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyOLmG5Bqro0wADPDjGAPVPjUh4Y6sVVvXDg0sP0jXQQgHcech6Lh6w4C2gPIXW2-dcMg/exec"; 
 
     // =================================================================
     // STATE MANAGEMENT
