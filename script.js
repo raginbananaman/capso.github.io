@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // CONFIGURATION
     // =================================================================
     // IMPORTANT: REPLACE THIS WITH YOUR ACTUAL, DEPLOYED WEB APP URL
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwrRSGdKcNVRgJBoAgoJNHovSoUZgNbbKwA43alHuPLMlcKKEDOQbMtJYB9NtN3cIDbCg/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwrRSGdKcNVRgJBoAgoJNHovSoUZgNbbKwA43alHuPLMlcKKEDOQbMtJYB9NtN3cIDbCg/exec"; 
 
     // =================================================================
     // STATE MANAGEMENT
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await postData('addNewOrder', orderData);
             if (result.success) {
                 allOrders.push(result.newOrder);
-                currentPage = 1; 
+                currentPage = 1; // Go to first page to see new order
                 render();
                 closeModal();
             } else { alert('Failed to add order: ' + (result.message || 'Unknown error')); }
@@ -324,4 +324,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     fetchData(); 
 });
-</script>
