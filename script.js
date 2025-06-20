@@ -2,7 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // CONFIGURATION
     // =================================================================
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwrRSGdKcNVRgJBoAgoJNHovSoUZgNbbKwA43alHuPLMlcKKEDOQbMtJYB9NtN3cIDbCg/exec"; // Replace with your actual deployed Apps Script URL
+    // IMPORTANT: REPLACE THIS WITH YOUR ACTUAL, DEPLOYED WEB APP URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwrRSGdKcNVRgJBoAgoJNHovSoUZgNbbKwA43alHuPLMlcKKEDOQbMtJYB9NtN3cIDbCg/exec";
 
     // =================================================================
     // STATE MANAGEMENT
@@ -28,21 +29,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // RENDERING FUNCTIONS
     // =================================================================
 
-    function showSpinner() {
-        loadingSpinner.classList.remove('hidden');
+    function showSpinner(message = 'Loading orders...') {
+        if(loadingSpinner) {
+            loadingSpinner.querySelector('p').textContent = message;
+            loadingSpinner.classList.remove('hidden');
+        }
     }
 
     function hideSpinner() {
-        loadingSpinner.classList.add('hidden');
+        if(loadingSpinner) loadingSpinner.classList.add('hidden');
     }
 
     function render() {
-        showSpinner();
         const filtered = allOrders.filter(order => {
+            if (!order) return false;
             if (currentFilter === 'All') return true;
             if (currentFilter === 'Active') return ['PENDING', 'SCHEDULED', 'OUT FOR DELIVERY'].includes(order.status);
             return order.status === currentFilter;
-        }).sort((a, b) => b.orderId - a.orderId);
+        }).sort((a, b) => (b.orderId || 0) - (a.orderId || 0));
 
         renderPagination(filtered.length);
 
@@ -52,12 +56,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paginated.length > 0) {
             paginated.forEach(order => {
                 const scheduled = order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Not Scheduled';
+                const statusClass = order.status ? `status-${order.status.toLowerCase().replace(/ /g, '-')}` : 'status-canceled';
                 ordersHtml += `
                     <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg">
                         <div class="px-4 py-5 sm:px-6">
                             <div class="flex items-center justify-between">
-                                <h3 class="text-base font-semibold leading-6 text-gray-900">${order.customer}</h3>
-                                <div class="status-badge status-${order.status.toLowerCase().replace(/ /g, '-')}">${order.status}</div>
+                                <h3 class="text-base font-semibold leading-6 text-gray-900">${order.customer || 'N/A'}</h3>
+                                <div class="status-badge ${statusClass}">${order.status || 'N/A'}</div>
                             </div>
                             <p class="mt-1 max-w-2xl text-sm text-gray-500">Order #${order.orderId} &bull; Scheduled: ${scheduled}</p>
                         </div>
@@ -73,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ordersHtml = '<p class="text-center text-gray-500 py-8">No orders match this filter.</p>';
         }
         ordersListContainer.innerHTML = ordersHtml;
-        hideSpinner();
     }
 
     function renderPagination(totalRows) {
@@ -159,9 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
 
     async function fetchData() {
-        showSpinner();
+        showSpinner('Loading orders...');
         try {
             const response = await fetch(`${GAS_URL}?action=getOrders`);
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
             const result = await response.json();
             if (result.success) {
                 allOrders = result.data;
@@ -170,26 +177,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Error fetching orders: ' + result.message);
             }
         } catch (error) {
-            alert('A critical error occurred while fetching data.');
-            console.error(error);
+            alert('A critical error occurred while fetching data. Please check the GAS_URL in script.js and ensure the Apps Script is deployed correctly with the right permissions.');
+            console.error('Fetch Error:', error);
         } finally {
             hideSpinner();
         }
     }
 
     async function postData(action, data) {
-        showSpinner();
+        showSpinner('Saving...');
         try {
             const response = await fetch(GAS_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Required for Apps Script POST
+                mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action, data })
             });
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
             return await response.json();
         } catch (error) {
             alert(`A critical error occurred while performing action: ${action}.`);
-            console.error(error);
-            return { success: false };
+            console.error('POST Error:', error);
+            return { success: false, message: error.message };
         } finally {
             hideSpinner();
         }
@@ -202,8 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
     addNewOrderBtn.addEventListener('click', () => setupModalFor('new'));
 
     ordersListContainer.addEventListener('click', e => {
-        if (e.target.closest('.view-details-btn')) {
-            const orderId = e.target.closest('.view-details-btn').dataset.orderId;
+        const detailsButton = e.target.closest('.view-details-btn');
+        if (detailsButton) {
+            const orderId = detailsButton.dataset.orderId;
             const order = allOrders.find(d => d.orderId == orderId);
             if (order) setupModalFor('edit', order);
         }
@@ -214,17 +226,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('#add-item-btn')) { addEditableItemRow('', ''); }
         if (e.target.closest('.remove-item-btn')) { e.target.closest('.flex').remove(); }
         
-        if (e.target.closest('#save-new-order-btn')) {
+        const saveNewBtn = e.target.closest('#save-new-order-btn');
+        if (saveNewBtn) {
+            saveNewBtn.textContent = 'Creating...';
             const orderData = getOrderDataFromModal();
             const result = await postData('addNewOrder', orderData);
             if (result.success) {
                 allOrders.push(result.newOrder);
+                currentPage = 1; 
                 render();
                 closeModal();
-            } else { alert('Failed to add order.'); }
+            } else { alert('Failed to add order: ' + (result.message || 'Unknown error')); }
+            saveNewBtn.textContent = 'Create Order';
         }
         
-        if (e.target.closest('#save-changes-btn')) {
+        const saveChangesBtn = e.target.closest('#save-changes-btn');
+        if (saveChangesBtn) {
+            saveChangesBtn.textContent = 'Saving...';
             const orderData = getOrderDataFromModal('edit');
             const result = await postData('updateOrder', orderData);
             if (result.success) {
@@ -232,7 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (index !== -1) allOrders[index] = result.updatedOrder;
                 render();
                 closeModal();
-            } else { alert('Failed to update order.'); }
+            } else { alert('Failed to update order: ' + (result.message || 'Unknown error')); }
+            saveChangesBtn.textContent = 'Save Changes';
         }
         
         if (e.target.closest('#delete-order-btn')) {
@@ -242,33 +261,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     confirmDeleteModal.addEventListener('click', async e => {
+        const confirmBtn = e.target.closest('#confirm-delete-btn');
         if (e.target.closest('#cancel-delete-btn')) { confirmDeleteModal.classList.add('hidden'); }
-        if (e.target.closest('#confirm-delete-btn')) {
+        if (confirmBtn) {
+            confirmBtn.textContent = 'Deleting...';
             const result = await postData('deleteOrder', { orderId: currentOrderInModal.orderId });
             if (result.success) {
                 allOrders = allOrders.filter(o => o.orderId != result.deletedOrderId);
                 render();
                 closeModal();
                 confirmDeleteModal.classList.add('hidden');
-            } else { alert('Failed to delete order.'); }
+            } else { alert('Failed to delete order: ' + (result.message || 'Unknown error')); }
+            confirmBtn.textContent = 'Delete';
         }
     });
 
     filterContainer.addEventListener('click', e => {
-        if(e.target.classList.contains('filter-btn')) {
+        const filterBtn = e.target.closest('.filter-btn');
+        if(filterBtn) {
             filterContainer.querySelector('.bg-gray-800').classList.remove('bg-gray-800', 'text-white');
-            e.target.classList.add('bg-gray-800', 'text-white');
-            currentFilter = e.target.dataset.filter;
+            filterBtn.classList.add('bg-gray-800', 'text-white');
+            currentFilter = filterBtn.dataset.filter;
             currentPage = 1;
             render();
         }
     });
     
     paginationContainer.addEventListener('click', e => {
-        if (e.target.closest('.pagination-btn')) {
-            const page = e.target.closest('.pagination-btn').dataset.page;
+        const pageBtn = e.target.closest('.pagination-btn');
+        if (pageBtn && !pageBtn.disabled) {
+            const page = pageBtn.dataset.page;
             if (page === 'prev') { currentPage--; }
             else if (page === 'next') { currentPage++; }
+            else { currentPage = parseInt(page); }
             render();
         }
     });
