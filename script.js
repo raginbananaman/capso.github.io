@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // CONFIGURATION
     // =================================================================
-    const GAS_URL = "https://script.google.com/macros/s/AKfycby706vdNUYknsHRyXGkWkGG36MnmLxMHHZ4294n5HPI4Q20XFoG2N-e6axoM06UiCv1CA/exec"; // Replace with your actual deployed Apps Script URL
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbwrRSGdKcNVRgJBoAgoJNHovSoUZgNbbKwA43alHuPLMlcKKEDOQbMtJYB9NtN3cIDbCg/exec"; // Replace with your actual deployed Apps Script URL
 
     // =================================================================
     // STATE MANAGEMENT
