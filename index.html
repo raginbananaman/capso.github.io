@@ -5,15 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CAPSo Dashboard</title>
   
-  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
-  
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
@@ -38,12 +31,10 @@
   <main>
     <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
       
-      <!-- Actions -->
       <div class="mb-4 flex justify-center">
         <button id="add-new-order-btn" type="button" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700">Add New Order</button>
       </div>
 
-      <!-- Filters -->
       <div class="filters mb-6 flex justify-center space-x-2">
         <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium bg-gray-800 text-white" data-filter="All">All</button>
         <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-filter="Active">Active</button>
@@ -52,17 +43,12 @@
         <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-filter="CANCELED">Canceled</button>
       </div>
       
-      <!-- Loading Spinner -->
       <div id="loading-spinner" class="text-center py-8">
           <p class="text-gray-500">Loading orders...</p>
       </div>
       
-      <!-- Orders List Container -->
       <div class="space-y-4" id="orders-list-container"></div>
-      
-      <!-- Pagination -->
       <div id="table-pagination" class="mt-6 flex items-center justify-center space-x-2"></div>
-
     </div>
   </main>
 </div>
@@ -130,6 +116,8 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="script.js"></script>
 
 </body>
