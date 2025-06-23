@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
 
- // =================================================================
+    // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -163,19 +163,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function setupAndOpenModal(isNew, order = {}) {
+    function openModal(isNew, order = {}) {
         currentOrderInModal = order;
         const titleEl = orderModal.querySelector('#modal-title');
+        const footer = orderModal.querySelector('#modal-footer');
         
         if (isNew) {
             titleEl.textContent = 'Add New Order';
             setModalMode('edit');
             populateEditView({}); 
+            footer.innerHTML = `
+                <button type="button" class="modal-close mt-3 w-full inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancel</button>
+                <button id="save-new-order-btn" type="button" class="w-full inline-flex justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 sm:ml-3 sm:w-auto">Create Order</button>
+            `;
         } else {
             titleEl.textContent = `Order #${order.orderId} Details`;
-            setModalMode('view'); 
+            setModalMode('view');
             populateDisplayView(order);
             populateEditView(order);
+            footer.innerHTML = `
+                <div class="view-mode-buttons flex justify-between w-full">
+                    <button id="delete-order-btn" type="button" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700">Delete</button>
+                    <div>
+                        <button type="button" class="modal-close rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Close</button>
+                        <button id="edit-order-btn" type="button" class="ml-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Edit</button>
+                    </div>
+                </div>
+                <div class="edit-mode-buttons flex justify-end w-full">
+                    <button type="button" class="modal-cancel rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+                    <button id="save-changes-btn" type="button" class="ml-2 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Save Changes</button>
+                </div>
+            `;
         }
         orderModal.classList.remove('hidden');
     }
@@ -244,19 +262,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // EVENT LISTENERS
     // =================================================================
-    addNewOrderBtn.addEventListener('click', () => setupAndOpenModal(true));
+    addNewOrderBtn.addEventListener('click', () => openModal(true));
     
     ordersListContainer.addEventListener('click', e => {
         const detailsButton = e.target.closest('.view-details-btn');
         if (detailsButton) {
             const order = allOrders.find(d => d.orderId == detailsButton.dataset.orderId);
-            if (order) setupAndOpenModal(false, order);
+            if (order) openModal(false, order);
         }
     });
 
     orderModal.addEventListener('click', e => {
         const target = e.target;
-        if (target.closest('.modal-close') || target.closest('.modal-cancel')) { closeModal(); }
+        if (target.closest('.modal-close')) { closeModal(); }
+        if (target.closest('.modal-cancel')) { 
+            if (currentOrderInModal && currentOrderInModal.orderId) {
+                setModalMode('view'); // If editing, go back to view mode
+            } else {
+                closeModal(); // If adding new, close the modal
+            }
+        }
         if (target.closest('#add-item-btn')) { addEditableItemRow(); }
         if (target.closest('.remove-item-btn')) { target.closest('.flex').remove(); }
         if (target.closest('#edit-order-btn')) { setModalMode('edit'); }
@@ -301,3 +326,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     fetchData(); 
 });
+
