@@ -52,7 +52,6 @@
         <button id="add-new-order-btn" type="button" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700">Add New Order</button>
       </div>
 
-      <!-- Calendar Section -->
       <div class="mb-8 bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-4 sm:p-6">
           <div class="flex items-center justify-between mb-4">
               <button id="prev-week-btn" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Previous</button>
@@ -80,7 +79,6 @@
   </main>
 </div>
 
-<!-- Modals -->
 <div id="order-modal" class="hidden relative z-10">
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
     <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
@@ -89,17 +87,15 @@
           <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Order Details</h3>
             
-            <!-- [NEW] Display View (Receipt Style) -->
             <div class="display-view mt-4 space-y-4">
                 <p><strong>Order ID:</strong> <span id="display-order-id"></span></p>
-                <div class="display-group border-t pt-4"><strong>Customer:</strong> <span id="display-customer-name" class="block font-normal text-gray-700"></span></div>
+                <p><strong>Date Created:</strong> <span id="display-date-created"></span></p> <div class="display-group border-t pt-4"><strong>Customer:</strong> <span id="display-customer-name" class="block font-normal text-gray-700"></span></div>
                 <div class="display-group"><strong>Address:</strong> <span id="display-customer-address" class="block font-normal text-gray-700"></span></div>
                 <div class="display-group border-t pt-4"><strong>Items:</strong><div id="display-items-list" class="mt-1"></div></div>
                 <div class="display-group border-t pt-4"><strong>Scheduled Date:</strong> <span id="display-schedule-date" class="block font-normal text-gray-700"></span></div>
                 <div class="display-group"><strong>Status:</strong> <span id="display-status"></span></div>
             </div>
 
-            <!-- [NEW] Edit View (Form) -->
             <div class="edit-view mt-4 space-y-4">
               <div>
                 <label for="customer-name" class="block text-sm font-medium">Customer Name</label>
@@ -148,11 +144,9 @@
     </div>
 </div>
 <div id="add-order-modal" class="hidden relative z-10">
-    <!-- The Add Order modal remains the same as before -->
-</div>
+    </div>
 <div id="confirm-delete-modal" class="hidden relative z-20">
-    <!-- The Confirm Delete modal remains the same as before -->
-</div>
+    </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
