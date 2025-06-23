@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
         messagingSenderId: "389493283794",
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
-    
-   // =================================================================
+
+    // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterContainer = document.querySelector('.filters');
     const addNewOrderBtn = document.getElementById('add-new-order-btn');
     const orderModal = document.getElementById('order-modal');
+    const modalContentContainer = document.getElementById('modal-content-container');
     const confirmDeleteModal = document.getElementById('confirm-delete-modal');
     const loadingSpinner = document.getElementById('loading-spinner');
     const calendarGrid = document.getElementById('calendar-grid');
@@ -104,7 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderPagination(totalRows) {
         const totalPages = Math.ceil(totalRows / rowsPerPage);
-        if (currentPage > totalPages) currentPage = totalPages || 1;
+        if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
         paginationContainer.style.display = totalPages > 1 ? 'flex' : 'none';
         let paginationHtml = '';
         if (totalPages > 1) {
@@ -161,41 +163,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // MODAL HANDLING
     // =================================================================
     function setModalMode(mode) {
-        const contentContainer = document.getElementById('modal-content-container');
         if (mode === 'edit') {
-            contentContainer.classList.remove('view-mode');
-            contentContainer.classList.add('edit-mode');
-        } else { // view
-            contentContainer.classList.remove('view-mode');
-            contentContainer.classList.add('edit-mode'); // Start in edit mode for simplicity now
+            modalContentContainer.classList.remove('view-mode');
+            modalContentContainer.classList.add('edit-mode');
+        } else { // 'view'
+            modalContentContainer.classList.remove('edit-mode');
+            modalContentContainer.classList.add('view-mode');
         }
     }
     
-    function setupModal(isNew, order = {}) {
-        const modal = document.getElementById('order-modal');
-        const titleEl = modal.querySelector('#modal-title');
-        const contentContainer = document.getElementById('modal-content-container');
-
+    function setupAndOpenModal(isNew, order = {}) {
         currentOrderInModal = order;
         
-        // This is now a single modal for both Add and Edit.
-        // The logic to differentiate is in how we populate it and what buttons we show.
-        populateEditView(order); 
-
+        const titleEl = orderModal.querySelector('#modal-title');
+        const statusField = orderModal.querySelector('#status-field-container');
+        
         if (isNew) {
             titleEl.textContent = 'Add New Order';
-            contentContainer.classList.add('edit-mode'); // Always start in edit mode for new orders
-            document.getElementById('status-field-container').style.display = 'none';
+            setModalMode('edit'); // New orders start in edit mode
+            populateEditView({});
+            statusField.style.display = 'none'; // Hide status field for new orders
         } else {
-            titleEl.textContent = 'Order Details';
-            contentContainer.classList.add('view-mode'); // Start in view mode for existing orders
+            titleEl.textContent = `Order #${order.orderId} Details`;
+            setModalMode('view'); // Existing orders start in view mode
             populateDisplayView(order);
-            document.getElementById('status-field-container').style.display = 'block';
+            populateEditView(order);
+            statusField.style.display = 'block';
         }
         
-        modal.classList.remove('hidden');
+        orderModal.classList.remove('hidden');
     }
-
 
     function populateDisplayView(order) {
         document.getElementById('display-order-id').textContent = order.orderId;
@@ -208,9 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let itemsHtml = '<ul>';
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => { itemsHtml += `<li><span>${item.item}</span><span><strong>${item.quantity}</strong></span></li>`; });
-        } else {
-             itemsHtml += '<li>No items found.</li>';
-        }
+        } else { itemsHtml += '<li>No items found.</li>'; }
         itemsHtml += '</ul>';
         document.getElementById('display-items-list').innerHTML = itemsHtml;
     }
@@ -226,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => addEditableItemRow(item.item, item.quantity));
         } else {
-            addEditableItemRow('', '');
+            addEditableItemRow();
         }
     }
     
@@ -239,8 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function closeModal() {
-        const modal = document.getElementById('order-modal');
-        modal.classList.add('hidden');
+        orderModal.classList.add('hidden');
     }
 
     // =================================================================
@@ -260,7 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleSave(isNew) {
+    async function handleSave() {
+        const isNew = !currentOrderInModal.orderId;
         const orderData = getOrderDataFromModal(isNew);
         showSpinner('Saving...');
         try {
@@ -301,42 +296,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // EVENT LISTENERS
     // =================================================================
-    addNewOrderBtn.addEventListener('click', () => {
-        const modal = document.getElementById('order-modal');
-        const titleEl = modal.querySelector('#modal-title');
-        const contentContainer = document.getElementById('modal-content-container');
-        
-        currentOrderInModal = {}; // Reset for new order
-        titleEl.textContent = 'Add New Order';
-        contentContainer.classList.remove('view-mode');
-        contentContainer.classList.add('edit-mode');
-        populateEditView({}); // Populate with empty fields
-        
-        const footer = modal.querySelector('#modal-footer');
-        footer.innerHTML = `
-            <button type="button" class="modal-cancel w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancel</button>
-            <button id="save-new-order-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 sm:ml-3 sm:w-auto">Create Order</button>
-        `;
-        modal.classList.remove('hidden');
-    });
-
+    addNewOrderBtn.addEventListener('click', () => setupModal(true));
+    
     ordersListContainer.addEventListener('click', e => {
         const detailsButton = e.target.closest('.view-details-btn');
         if (detailsButton) {
-            const orderId = detailsButton.dataset.orderId;
-            const order = allOrders.find(d => d.orderId == orderId);
+            const order = allOrders.find(d => d.orderId == detailsButton.dataset.orderId);
             if (order) setupModal(false, order);
         }
     });
 
     orderModal.addEventListener('click', e => {
         const target = e.target;
-        if (target.closest('.modal-cancel')) { closeModal(); }
-        if (target.closest('#add-item-btn')) { addEditableItemRow('edit'); }
+        if (target.closest('.modal-close') || target.closest('.modal-cancel')) { closeModal(); }
+        if (target.closest('#add-item-btn')) { addEditableItemRow(); }
         if (target.closest('.remove-item-btn')) { target.closest('.flex').remove(); }
         if (target.closest('#edit-order-btn')) { setModalMode('edit'); }
-        if (target.closest('#save-changes-btn')) { handleSave(false); }
-        if (target.closest('#save-new-order-btn')) { handleSave(true); }
+        if (target.closest('#save-changes-btn')) { handleSave(); }
+        if (target.closest('#save-new-order-btn')) { handleSave(); }
         if (target.closest('#delete-order-btn')) {
             confirmDeleteModal.querySelector('#confirm-delete-message').textContent = `Are you sure you want to delete order #${currentOrderInModal.orderId}?`;
             confirmDeleteModal.classList.remove('hidden');
@@ -348,43 +325,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('#confirm-delete-btn')) { handleDelete(); }
     });
 
-    filterContainer.addEventListener('click', e => {
-        const filterBtn = e.target.closest('.filter-btn');
-        if(filterBtn) {
-            filterContainer.querySelector('.bg-gray-800').classList.remove('bg-gray-800', 'text-white');
-            filterBtn.classList.add('bg-gray-800', 'text-white');
-            currentFilter = filterBtn.dataset.filter;
-            currentPage = 1;
-            render();
-        }
-    });
-
-    paginationContainer.addEventListener('click', e => {
-        const pageBtn = e.target.closest('.pagination-btn');
-        if (pageBtn && !pageBtn.disabled) {
-            const page = pageBtn.dataset.page;
-            if (page === 'prev') { currentPage--; }
-            else if (page === 'next') { currentPage++; }
-            else { currentPage = parseInt(page); }
-            render();
-        }
-    });
-
+    filterContainer.addEventListener('click', e => { const filterBtn = e.target.closest('.filter-btn'); if(filterBtn) { filterContainer.querySelector('.bg-gray-800').classList.remove('bg-gray-800', 'text-white'); filterBtn.classList.add('bg-gray-800', 'text-white'); currentFilter = filterBtn.dataset.filter; currentPage = 1; render(); }});
+    paginationContainer.addEventListener('click', e => { const pageBtn = e.target.closest('.pagination-btn'); if (pageBtn && !pageBtn.disabled) { const page = pageBtn.dataset.page; if (page === 'prev') { currentPage--; } else if (page === 'next') { currentPage++; } else { currentPage = parseInt(page); } render(); }});
     prevWeekBtn.addEventListener('click', () => { calendarDate.setDate(calendarDate.getDate() - 7); renderCalendar(); });
     nextWeekBtn.addEventListener('click', () => { calendarDate.setDate(calendarDate.getDate() + 7); renderCalendar(); });
 
     function getOrderDataFromModal(isNew) {
-        const modal = document.getElementById('order-modal');
         const data = {
-            customer: modal.querySelector('#customer-name').value,
-            address: modal.querySelector('#customer-address').value,
+            customer: document.getElementById('customer-name').value,
+            address: document.getElementById('customer-address').value,
             items: [],
-            scheduledDate: modal.querySelector('#schedule-date').value || null,
+            scheduledDate: document.getElementById('schedule-date').value || null,
         };
         if (!isNew) {
-            data.status = modal.querySelector('#status').value;
+            data.status = document.getElementById('status').value;
         }
-        modal.querySelector('#items-container').querySelectorAll('.flex').forEach(row => {
+        document.getElementById('items-container').querySelectorAll('.flex').forEach(row => {
             const name = row.querySelector('.item-name-input').value.trim();
             const qty = row.querySelector('.item-qty-input').value.trim();
             if (name && qty) { data.items.push({ item: name, quantity: parseInt(qty, 10) }); }
@@ -397,4 +353,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     fetchData(); 
 });
-
