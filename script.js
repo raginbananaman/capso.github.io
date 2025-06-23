@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
 
-    // =================================================================
+ // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -47,20 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextWeekBtn = document.getElementById('next-week-btn');
 
     // =================================================================
-    // RENDERING FUNCTIONS
+    // RENDERING & UI FUNCTIONS
     // =================================================================
-    function showSpinner(message = 'Loading...') {
-        if(loadingSpinner) {
-            loadingSpinner.querySelector('p').textContent = message;
-            loadingSpinner.classList.remove('hidden');
-        }
-    }
-
-    function hideSpinner() {
-        if(loadingSpinner) loadingSpinner.classList.add('hidden');
-    }
-
     function render() {
+        hideSpinner();
         renderOrdersList();
         renderCalendar();
     }
@@ -176,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupAndOpenModal(isNew, order = {}) {
         currentOrderInModal = order;
         const titleEl = orderModal.querySelector('#modal-title');
-        const footer = orderModal.querySelector('#modal-footer');
         
         if (isNew) {
             titleEl.textContent = 'Add New Order';
@@ -186,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             titleEl.textContent = `Order #${order.orderId} Details`;
             setModalMode('view'); 
             populateDisplayView(order);
-            populateEditView(order); 
+            populateEditView(order);
         }
         orderModal.classList.remove('hidden');
     }
@@ -256,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // EVENT LISTENERS
     // =================================================================
     addNewOrderBtn.addEventListener('click', () => setupAndOpenModal(true));
+    
     ordersListContainer.addEventListener('click', e => {
         const detailsButton = e.target.closest('.view-details-btn');
         if (detailsButton) {
