@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messagingSenderId: "389493283794",
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
+    
 
     // =================================================================
     // INITIALIZE FIREBASE
@@ -48,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // RENDERING FUNCTIONS
     // =================================================================
-    function showSpinner(message = 'Loading orders...') {
+    function showSpinner(message = 'Loading...') {
         if(loadingSpinner) {
             loadingSpinner.querySelector('p').textContent = message;
             loadingSpinner.classList.remove('hidden');
@@ -174,23 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function setupAndOpenModal(isNew, order = {}) {
         currentOrderInModal = order;
-        
         const titleEl = orderModal.querySelector('#modal-title');
-        const statusField = orderModal.querySelector('#status-field-container');
+        const footer = orderModal.querySelector('#modal-footer');
         
         if (isNew) {
             titleEl.textContent = 'Add New Order';
-            setModalMode('edit'); // New orders start in edit mode
-            populateEditView({});
-            statusField.style.display = 'none'; // Hide status field for new orders
+            setModalMode('edit');
+            populateEditView({}); 
         } else {
             titleEl.textContent = `Order #${order.orderId} Details`;
-            setModalMode('view'); // Existing orders start in view mode
+            setModalMode('view'); 
             populateDisplayView(order);
-            populateEditView(order);
-            statusField.style.display = 'block';
+            populateEditView(order); 
         }
-        
         orderModal.classList.remove('hidden');
     }
 
@@ -201,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('display-customer-address').textContent = order.address;
         document.getElementById('display-schedule-date').textContent = order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not Scheduled';
         document.getElementById('display-status').innerHTML = `<span class="status-badge status-${order.status.toLowerCase().replace(/ /g, '-')}">${order.status}</span>`;
-        
         let itemsHtml = '<ul>';
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => { itemsHtml += `<li><span>${item.item}</span><span><strong>${item.quantity}</strong></span></li>`; });
@@ -215,14 +211,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('customer-address').value = order.address || '';
         document.getElementById('schedule-date').value = order.scheduledDate ? new Date(order.scheduledDate).toISOString().split('T')[0] : '';
         document.getElementById('status').value = order.status || 'PENDING';
-        
+        document.getElementById('status-field-container').style.display = order.orderId ? 'block' : 'none';
         const itemsContainer = document.getElementById('items-container');
         itemsContainer.innerHTML = '';
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => addEditableItemRow(item.item, item.quantity));
-        } else {
-            addEditableItemRow();
-        }
+        } else { addEditableItemRow(); }
     }
     
     function addEditableItemRow(name = '', qty = '') {
@@ -233,29 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsContainer.appendChild(itemRow);
     }
     
-    function closeModal() {
-        orderModal.classList.add('hidden');
-    }
+    function closeModal() { orderModal.classList.add('hidden'); }
 
     // =================================================================
     // FIRESTORE ACTIONS
     // =================================================================
-    async function fetchData() {
-        showSpinner();
-        try {
-            const snapshot = await ordersCollection.orderBy("orderId", "desc").get();
-            allOrders = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
-            render();
-        } catch (error) {
-            console.error("Error fetching data: ", error);
-            alert("Could not fetch data. Check console and Firebase config.");
-        } finally {
-            hideSpinner();
-        }
-    }
-
-    async function handleSave() {
-        const isNew = !currentOrderInModal.orderId;
+    async function fetchData() { showSpinner(); try { const snapshot = await ordersCollection.orderBy("orderId", "desc").get(); allOrders = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() })); render(); } catch (error) { console.error("Error fetching data: ", error); alert("Could not fetch data. Check console and Firebase config."); } finally { hideSpinner(); } };
+    async function handleSave(isNew) {
         const orderData = getOrderDataFromModal(isNew);
         showSpinner('Saving...');
         try {
@@ -270,39 +248,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             await fetchData(); 
             closeModal();
-        } catch (error) {
-            console.error("Error saving data: ", error);
-            alert("Could not save the order.");
-        } finally {
-            hideSpinner();
-        }
+        } catch (error) { console.error("Error saving data: ", error); alert("Could not save the order."); } finally { hideSpinner(); }
     }
-
-    async function handleDelete() {
-        showSpinner('Deleting...');
-        try {
-            await ordersCollection.doc(currentOrderInModal.docId).delete();
-            confirmDeleteModal.classList.add('hidden');
-            await fetchData();
-            closeModal();
-        } catch(error) {
-            console.error("Error deleting document: ", error);
-            alert("Could not delete the order.");
-        } finally {
-            hideSpinner();
-        }
-    }
+    async function handleDelete() { showSpinner('Deleting...'); try { await ordersCollection.doc(currentOrderInModal.docId).delete(); confirmDeleteModal.classList.add('hidden'); await fetchData(); closeModal(); } catch(error) { console.error("Error deleting document: ", error); alert("Could not delete the order."); } finally { hideSpinner(); }};
     
     // =================================================================
     // EVENT LISTENERS
     // =================================================================
-    addNewOrderBtn.addEventListener('click', () => setupModal(true));
-    
+    addNewOrderBtn.addEventListener('click', () => setupAndOpenModal(true));
     ordersListContainer.addEventListener('click', e => {
         const detailsButton = e.target.closest('.view-details-btn');
         if (detailsButton) {
             const order = allOrders.find(d => d.orderId == detailsButton.dataset.orderId);
-            if (order) setupModal(false, order);
+            if (order) setupAndOpenModal(false, order);
         }
     });
 
@@ -312,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.closest('#add-item-btn')) { addEditableItemRow(); }
         if (target.closest('.remove-item-btn')) { target.closest('.flex').remove(); }
         if (target.closest('#edit-order-btn')) { setModalMode('edit'); }
-        if (target.closest('#save-changes-btn')) { handleSave(); }
-        if (target.closest('#save-new-order-btn')) { handleSave(); }
+        if (target.closest('#save-changes-btn')) { handleSave(false); }
+        if (target.closest('#save-new-order-btn')) { handleSave(true); }
         if (target.closest('#delete-order-btn')) {
             confirmDeleteModal.querySelector('#confirm-delete-message').textContent = `Are you sure you want to delete order #${currentOrderInModal.orderId}?`;
             confirmDeleteModal.classList.remove('hidden');
