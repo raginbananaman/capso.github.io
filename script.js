@@ -11,20 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messagingSenderId: "389493283794",
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
-
-   document.addEventListener('DOMContentLoaded', () => {
-    // =================================================================
-    // CONFIGURATION
-    // =================================================================
-    const firebaseConfig = {
-        apiKey: "REPLACE_ME",
-        authDomain: "REPLACE_ME",
-        projectId: "REPLACE_ME",
-        storageBucket: "REPLACE_ME",
-        messagingSenderId: "REPLACE_ME",
-        appId: "REPLACE_ME"
-    };
-
+    
     // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
