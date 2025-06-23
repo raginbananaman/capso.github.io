@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
 
-        // =================================================================
+       // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(ordersByDay).forEach((dayString, index) => {
             const dayOrders = ordersByDay[dayString];
             const date = new Date(dayString);
-            date.setMinutes(date.getMinutes() + date.getTimezoneOffset()); // Adjust for display
+            date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
             
             let ordersHtml = '<p class="text-xs text-gray-400">No deliveries</p>';
             if(dayOrders.length > 0) {
@@ -173,45 +173,60 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // MODAL HANDLING
     // =================================================================
-    function setupModalFor(type, order = {}) {
+    function setupModal(isNew, order = {}) {
+        const modalContainer = document.getElementById('order-modal');
+        const contentContainer = modalContainer.querySelector('.modal-content-container');
+        
         currentOrderInModal = order;
-        const modalTitle = orderModal.querySelector('#modal-title');
-        const customerNameInput = orderModal.querySelector('#customer-name');
-        const customerAddressInput = orderModal.querySelector('#customer-address');
-        const itemsContainer = orderModal.querySelector('#items-container');
-        const schedulingFields = orderModal.querySelector('#scheduling-fields');
-        const statusFieldContainer = orderModal.querySelector('#status-field-container');
-        const footer = orderModal.querySelector('#modal-footer');
         
-        itemsContainer.innerHTML = '';
-        
-        if (type === 'new') {
-            modalTitle.textContent = 'Add New Order';
-            customerNameInput.value = '';
-            customerAddressInput.value = '';
-            schedulingFields.style.display = 'block';
-            orderModal.querySelector('#schedule-date').value = '';
-            statusFieldContainer.style.display = 'none'; // Hide status for new orders
-            addEditableItemRow('', '');
-            footer.innerHTML = `<button type="button" class="modal-cancel w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancel</button><button id="save-new-order-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 sm:ml-3 sm:w-auto">Create Order</button>`;
-        } else { // 'edit'
-            modalTitle.textContent = `Edit Order #${order.orderId}`;
-            customerNameInput.value = order.customer;
-            customerAddressInput.value = order.address;
-            schedulingFields.style.display = 'block';
-            statusFieldContainer.style.display = 'block'; // Show status for editing
-            if (order.items && order.items.length > 0) {
-                order.items.forEach(item => addEditableItemRow(item.item, item.quantity));
-            } else { addEditableItemRow('', ''); }
-            orderModal.querySelector('#schedule-date').value = order.scheduledDate ? new Date(order.scheduledDate).toISOString().split('T')[0] : '';
-            orderModal.querySelector('#status').value = order.status;
-            footer.innerHTML = `<button id="delete-order-btn" type="button" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700">Delete</button><div class="flex-grow"></div><button type="button" class="modal-cancel rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button><button id="save-changes-btn" type="button" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Save Changes</button>`;
+        if (isNew) {
+            contentContainer.classList.add('edit-mode');
+            modalContainer.querySelector('#modal-title').textContent = 'Add New Order';
+        } else {
+            contentContainer.classList.remove('edit-mode');
+            modalContainer.querySelector('#modal-title').textContent = 'Order Details';
+            populateDisplayView(order);
         }
-        orderModal.classList.remove('hidden');
+        
+        populateEditView(order);
+        modalContainer.classList.remove('hidden');
+    }
+
+    function populateDisplayView(order) {
+        document.getElementById('display-order-id').textContent = order.orderId;
+        document.getElementById('display-date-created').textContent = new Date(order.dateCreated).toLocaleString();
+        document.getElementById('display-customer-name').textContent = order.customer;
+        document.getElementById('display-customer-address').textContent = order.address;
+        document.getElementById('display-schedule-date').textContent = order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not Scheduled';
+        document.getElementById('display-status').innerHTML = `<span class="status-badge status-${order.status.toLowerCase().replace(/ /g, '-')}">${order.status}</span>`;
+        
+        let itemsHtml = '<ul>';
+        if (order.items && order.items.length > 0) {
+            order.items.forEach(item => { itemsHtml += `<li><span>${item.item}</span><span><strong>${item.quantity}</strong></span></li>`; });
+        } else {
+             itemsHtml += '<li>No items found.</li>';
+        }
+        itemsHtml += '</ul>';
+        document.getElementById('display-items-list').innerHTML = itemsHtml;
+    }
+
+    function populateEditView(order) {
+        document.getElementById('customer-name').value = order.customer || '';
+        document.getElementById('customer-address').value = order.address || '';
+        document.getElementById('schedule-date').value = order.scheduledDate ? new Date(order.scheduledDate).toISOString().split('T')[0] : '';
+        document.getElementById('status').value = order.status || 'PENDING';
+        
+        const itemsContainer = document.getElementById('items-container');
+        itemsContainer.innerHTML = '';
+        if (order.items && order.items.length > 0) {
+            order.items.forEach(item => addEditableItemRow(item.item, item.quantity));
+        } else {
+            addEditableItemRow('', '');
+        }
     }
     
     function addEditableItemRow(name = '', qty = '') {
-        const itemsContainer = orderModal.querySelector('#items-container');
+        const itemsContainer = document.getElementById('items-container');
         const itemRow = document.createElement('div');
         itemRow.className = 'flex items-center space-x-2';
         itemRow.innerHTML = `<input type="text" placeholder="Item Name" value="${name}" class="item-name-input block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm"><input type="number" placeholder="Qty" value="${qty}" class="item-qty-input block w-1/4 rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm"><button type="button" class="remove-item-btn rounded-full p-1 text-gray-400 hover:text-gray-500 hover:bg-gray-100">&times;</button>`;
@@ -223,13 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // FIRESTORE ACTIONS
     // =================================================================
-
-    function getNextOrderId() {
-        if (allOrders.length === 0) return 1;
-        const maxId = Math.max(...allOrders.map(o => o.orderId));
-        return maxId + 1;
-    }
-
     async function fetchData() {
         showSpinner();
         try {
@@ -244,18 +252,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleSave(type) {
-        const orderData = getOrderDataFromModal(type);
+    async function handleSave() {
+        const orderData = getOrderDataFromModal();
         showSpinner('Saving...');
         try {
-            if (type === 'new') {
-                orderData.orderId = getNextOrderId();
+            // If it's a new order, it won't have a docId yet.
+            if (!currentOrderInModal.docId) { 
+                orderData.orderId = allOrders.length > 0 ? Math.max(...allOrders.map(o => o.orderId)) + 1 : 1;
                 orderData.dateCreated = new Date().toISOString();
-                // [NEW LOGIC] Set status based on whether a schedule date was provided
-                orderData.status = orderData.scheduledDate ? 'SCHEDULED' : 'PENDING';
+                if (!orderData.status) { // Set status if it's a new order
+                    orderData.status = orderData.scheduledDate ? 'SCHEDULED' : 'PENDING';
+                }
                 await ordersCollection.doc(String(orderData.orderId)).set(orderData);
-            } else {
-                await ordersCollection.doc(String(orderData.orderId)).update(orderData);
+            } else { // It's an existing order
+                orderData.orderId = currentOrderInModal.orderId;
+                await ordersCollection.doc(currentOrderInModal.docId).update(orderData);
             }
             await fetchData(); 
             closeModal();
@@ -270,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleDelete() {
         showSpinner('Deleting...');
         try {
-            await ordersCollection.doc(String(currentOrderInModal.orderId)).delete();
+            await ordersCollection.doc(currentOrderInModal.docId).delete();
             confirmDeleteModal.classList.add('hidden');
             await fetchData();
             closeModal();
@@ -285,30 +296,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // EVENT LISTENERS
     // =================================================================
-    addNewOrderBtn.addEventListener('click', () => setupModalFor('new'));
+    addNewOrderBtn.addEventListener('click', () => setupModal(true));
     ordersListContainer.addEventListener('click', e => {
         const detailsButton = e.target.closest('.view-details-btn');
         if (detailsButton) {
             const orderId = detailsButton.dataset.orderId;
             const order = allOrders.find(d => d.orderId == orderId);
-            if (order) setupModalFor('edit', order);
+            if (order) setupModal(false, order);
         }
     });
+
     orderModal.addEventListener('click', e => {
-        if (e.target.closest('.modal-cancel')) { closeModal(); }
-        if (e.target.closest('#add-item-btn')) { addEditableItemRow('', ''); }
-        if (e.target.closest('.remove-item-btn')) { e.target.closest('.flex').remove(); }
-        if (e.target.closest('#save-new-order-btn')) { handleSave('new'); }
-        if (e.target.closest('#save-changes-btn')) { handleSave('edit'); }
-        if (e.target.closest('#delete-order-btn')) {
+        const target = e.target;
+        const modalContent = target.closest('.modal-content-container');
+
+        if (target.closest('.modal-cancel')) { closeModal(); }
+        if (target.closest('#add-item-btn')) { addEditableItemRow('', ''); }
+        if (target.closest('.remove-item-btn')) { target.closest('.flex').remove(); }
+        if (target.closest('#edit-order-btn')) { if (modalContent) modalContent.classList.remove('view-mode'); modalContent.classList.add('edit-mode'); }
+        if (target.closest('#save-changes-btn')) { handleSave(); }
+        if (target.closest('#delete-order-btn')) {
             confirmDeleteModal.querySelector('#confirm-delete-message').textContent = `Are you sure you want to delete order #${currentOrderInModal.orderId}?`;
             confirmDeleteModal.classList.remove('hidden');
         }
     });
+
+    document.getElementById('add-order-modal')?.addEventListener('click', e => {
+        // This modal is no longer used, but keeping listener to prevent errors if HTML is not updated.
+    });
+    
     confirmDeleteModal.addEventListener('click', e => {
         if (e.target.closest('#cancel-delete-btn')) { confirmDeleteModal.classList.add('hidden'); }
         if (e.target.closest('#confirm-delete-btn')) { handleDelete(); }
     });
+
     filterContainer.addEventListener('click', e => {
         const filterBtn = e.target.closest('.filter-btn');
         if(filterBtn) {
@@ -319,6 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
             render();
         }
     });
+
     paginationContainer.addEventListener('click', e => {
         const pageBtn = e.target.closest('.pagination-btn');
         if (pageBtn && !pageBtn.disabled) {
@@ -329,36 +351,32 @@ document.addEventListener('DOMContentLoaded', () => {
             render();
         }
     });
-    prevWeekBtn.addEventListener('click', () => {
-        calendarDate.setDate(calendarDate.getDate() - 7);
-        renderCalendar();
-    });
-    nextWeekBtn.addEventListener('click', () => {
-        calendarDate.setDate(calendarDate.getDate() + 7);
-        renderCalendar();
-    });
 
-    function getOrderDataFromModal(type = 'new') {
+    prevWeekBtn.addEventListener('click', () => { calendarDate.setDate(calendarDate.getDate() - 7); renderCalendar(); });
+    nextWeekBtn.addEventListener('click', () => { calendarDate.setDate(calendarDate.getDate() + 7); renderCalendar(); });
+
+    function getOrderDataFromModal() {
         const data = {
-            customer: orderModal.querySelector('#customer-name').value,
-            address: orderModal.querySelector('#customer-address').value,
+            customer: document.getElementById('customer-name').value,
+            address: document.getElementById('customer-address').value,
             items: [],
-            scheduledDate: orderModal.querySelector('#schedule-date').value || null, // Get schedule date for new orders too
+            scheduledDate: document.getElementById('schedule-date').value || null,
+            status: document.getElementById('status').value,
         };
-        orderModal.querySelectorAll('#items-container .flex').forEach(row => {
+        document.getElementById('items-container').querySelectorAll('.flex').forEach(row => {
             const name = row.querySelector('.item-name-input').value.trim();
             const qty = row.querySelector('.item-qty-input').value.trim();
             if (name && qty) { data.items.push({ item: name, quantity: parseInt(qty, 10) }); }
         });
-        if (type === 'edit') {
-            data.orderId = currentOrderInModal.orderId;
-            data.status = orderModal.querySelector('#status').value;
-        }
         return data;
     }
 
     // =================================================================
     // INITIALIZATION
+    // =================================================================
+    fetchData(); 
+});
+
     // =================================================================
     fetchData(); 
 });
