@@ -293,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 data.orderId = allOrders.length ? Math.max(...allOrders.map(o => o.orderId || 0)) + 1 : 1;
                 data.dateCreated = new Date().toISOString();
                 data.status = data.scheduledDate ? 'SCHEDULED' : 'PENDING';
-                // Using orderId as docId for simplicity and predictability
                 await ordersCollection.doc(String(data.orderId)).set(data);
             } else {
                 await ordersCollection.doc(currentOrderInModal.docId).update(data);
@@ -334,7 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return o.status === currentFilter;
         });
 
-        // The data is already sorted by orderId descending from the query.
         const paginated = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
         ordersListContainer.innerHTML = paginated.map(order => {
@@ -343,17 +341,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="bg-white rounded-xl shadow-md overflow-hidden ring-1 ring-black ring-opacity-5">
                     <div class="p-4 sm:p-6">
                         <div class="flex justify-between items-start gap-4">
-                            <div class="flex-grow">
+                            <div class="flex-grow min-w-0">
                                 <p class="text-sm font-medium text-indigo-600">Order #${order.orderId}</p>
                                 <p class="text-xl font-bold text-gray-900 truncate">${order.customer || 'N/A'}</p>
-                                <p class="text-sm text-gray-500">${order.address || 'No address'}</p>
+                                <p class="text-sm text-gray-500 truncate">${order.address || 'No address'}</p>
                             </div>
                             <div class="flex-shrink-0">
                                 <p class="status-badge ${statusClass}">${order.status || 'N/A'}</p>
                             </div>
                         </div>
                     </div>
-                    <div class="px-4 py-3 sm:px-6 bg-gray-50">
+                    <div class="px-4 py-3 sm:px-6 bg-gray-50 border-t border-gray-200">
                         <button class="view-details-btn w-full rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-order-id="${order.orderId}">
                         View Details
                         </button>
@@ -368,9 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = new Date(start);
         end.setDate(start.getDate() + 6);
 
-        currentWeekDisplay.textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+        currentWeekDisplay.textContent = `${start.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${end.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}`;
         
-        // OPTIMIZATION: Render Agenda view on mobile, Grid view on desktop
         if (window.innerWidth < 768) {
             renderAgendaView(start);
         } else {
@@ -379,9 +376,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderGridView(start, end) {
-        calendarGrid.className = 'grid grid-cols-7 gap-4'; // Desktop grid
+        calendarGrid.className = 'grid grid-cols-7 gap-4';
         const weekOrders = allOrders.filter(order => {
+            if (!order.scheduledDate) return false;
             const d = new Date(order.scheduledDate);
+            d.setHours(0,0,0,0);
             return d >= start && d <= end;
         });
 
@@ -394,18 +393,17 @@ document.addEventListener('DOMContentLoaded', () => {
         calendarGrid.innerHTML = days.map(day => {
             const dayStr = day.toISOString().split('T')[0];
             const ordersToday = weekOrders.filter(o => o.scheduledDate?.startsWith(dayStr));
-            const list = ordersToday.map(o => `<li class="text-xs truncate" title="${o.orderId} - ${o.customer}">${o.orderId} - ${o.customer}</li>`).join('');
+            const list = ordersToday.map(o => `<li class="text-xs truncate bg-white p-1 rounded" title="${o.orderId} - ${o.customer}">${o.customer}</li>`).join('');
             
-            return `<div class="bg-gray-50 p-2 rounded-lg min-h-[100px]">
-        <div class="text-sm font-semibold text-center">${day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-        <div class="text-xs text-gray-500 mb-2 text-center">${day.getDate()}</div>
-        <ul class="space-y-1">${list || '<li class="text-xs text-gray-400 text-center">No deliveries</li>'}</ul>
-      </div>`;
+            return `<div class="bg-gray-50 p-2 rounded-lg min-h-[120px]">
+                <div class="text-sm font-semibold text-center">${day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                <div class="text-xs text-gray-500 mb-2 text-center">${day.getDate()}</div>
+                <ul class="space-y-1">${list || ''}</ul>
+            </div>`;
         }).join('');
     }
 
     function renderAgendaView(start) {
-        // Make the container a horizontal, scroll-snapping carousel
         calendarGrid.className = 'flex overflow-x-auto snap-x snap-mandatory space-x-4 pb-4';
         let html = '';
         
@@ -422,29 +420,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="font-bold text-gray-800">${day.toLocaleDateString('en-US', { weekday: 'long' })}</div>
                         <div class="text-sm font-semibold ${isToday ? 'bg-yellow-300 text-gray-900' : 'bg-gray-200 text-gray-600'} rounded-full px-3 py-1">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                     </div>
-                    <div class="space-y-3">
+                    <div class="space-y-3 h-48 overflow-y-auto">
                     ${ordersToday.length > 0
                         ? ordersToday.map(o => {
-                            const statusClass = `status-${o.status.toLowerCase().replace(/ /g, '-')}`;
-                            let iconSvg = '<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>';
-                            if(o.status === 'OUT FOR DELIVERY') iconSvg = '<svg class="w-4 h-4 text-orange-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M3.105 6.105a.75.75 0 0 1 .89.894l-1 9.995A.75.75 0 0 1 2.25 18h-1.5a.75.75 0 0 1-.75-.75V8.352a.75.75 0 0 1 .504-.706l2.5-1a.75.75 0 0 1 .851.159Z" /><path d="M5.25 18a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1-.75-.75Z" /><path d="M9.25 18a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H10a.75.75 0 0 1-.75-.75Z" /><path d="M8.225 3.043a.75.75 0 0 1 .826.685l.592 3.846a.75.75 0 0 1-.43 1.018l-3.354 1.342a.75.75 0 0 1-.95-.311l-1.34-2.345a.75.75 0 0 1 .311-.95l3.354-1.342a.75.75 0 0 1 1.018-.43l.023-.012.012-.006a1.228 1.228 0 0 0-.012-.006ZM17.75 12a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1 0-1.5h3a.75.75 0 0 1 .75.75Z" /><path d="M14 15.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" /><path d="M17.75 9.5a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1 0-1.5h3a.75.75 0 0 1 .75.75Z" /></svg>';
-                            if(o.status === 'COMPLETE') iconSvg = '<svg class="w-4 h-4 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.06 0l4-5.5Z" clip-rule="evenodd" /></svg>';
-                            if(o.status === 'CANCELED') iconSvg = '<svg class="w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>';
+                            let iconSvg = '<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>';
+                            if(o.status === 'OUT FOR DELIVERY') iconSvg = '<svg class="w-5 h-5 text-orange-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M1.5 7.143a.75.75 0 0 1 .75-.75h1.23a.75.75 0 0 1 .743.648l.512 2.563a.75.75 0 0 1-.343.834L3.18 11.5a.75.75 0 0 1-.94-.312l-1.34-2.345a.75.75 0 0 1 .311-.95l.292-.15Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M4.623 8.384a.75.75 0 0 1 .743.648l.513 2.563a.75.75 0 0 1-.343.834l-1.206.603a.75.75 0 0 1-.94-.312l-1.34-2.345a.75.75 0 0 1 .311-.95l3.253-1.626Zm2.633-.001.023-.011a.75.75 0 0 1 1.018-.43l3.354 1.342a.75.75 0 0 1 .311.95l-1.34 2.345a.75.75 0 0 1-.95.311L6.34 11.5a.75.75 0 0 1-.343-.834l.513-2.563a.75.75 0 0 1 .743-.648ZM10.5 6.25a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5Z" clip-rule="evenodd" /><path d="M8.25 10a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z" /><path d="M14 6.25a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H14.75a.75.75 0 0 1-.75-.75Z" /><path d="M14 10a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" /><path d="M14 13.75a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H14.75a.75.75 0 0 1-.75-.75Z" /><path d="M14 17.5a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" /></svg>';
+                            if(o.status === 'COMPLETE') iconSvg = '<svg class="w-5 h-5 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.06 0l4-5.5Z" clip-rule="evenodd" /></svg>';
+                            if(o.status === 'CANCELED') iconSvg = '<svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>';
 
                             return `
                                 <div class="flex items-start space-x-3 bg-gray-50 p-2.5 rounded-lg">
                                     <div class="mt-0.5">${iconSvg}</div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-semibold text-gray-800">${o.customer}</p>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-semibold text-gray-800 truncate">${o.customer}</p>
                                         <p class="text-xs text-gray-500">Order #${o.orderId}</p>
                                     </div>
-                                    <div class="text-xs font-medium ${statusClass} rounded-full px-2 py-1">${o.status}</div>
+                                    <div class="text-xs font-medium text-white ${o.status === 'PENDING' ? 'bg-red-500' : 'bg-blue-500'} rounded-full px-2 py-1">${o.status.split(' ')[0]}</div>
                                 </div>
                             `;
                         }).join('')
-                        : `<div class="text-center text-sm text-gray-400 py-8">
-                               <svg class="mx-auto h-8 w-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l1.09 2.18L19 6l-2.18 1.09L16 9.27l-1.09-2.18L13 6l2.18-1.09L16 3zM3.5 10.5a7 7 0 1114 0 7 7 0 01-14 0z"></path></svg>
-                               <p class="mt-2">No deliveries today!</p>
+                        : `<div class="text-center text-sm text-gray-400 py-8 flex flex-col items-center justify-center h-full">
+                               <svg class="h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-1.414v.001M9 12h.01M15 12h.01M12 9v.01M12 15v.01"></path></svg>
+                               <p class="mt-2 font-medium">No deliveries today!</p>
                            </div>`
                     }
                     </div>
@@ -453,7 +450,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         calendarGrid.innerHTML = html;
 
-        // Auto-scroll to today's card if it's in view
         const todayCard = document.querySelector('.bg-yellow-300');
         if (todayCard) {
             todayCard.parentElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -515,7 +511,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCalendar();
     });
 
-    // Re-render calendar on window resize for responsiveness
     window.addEventListener('resize', renderCalendar);
 
 
