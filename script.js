@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
 
-    // =================================================================
+        // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 10;
     let currentOrderInModal = null;
-    let calendarDate = new Date(); // [NEW] Date for calendar navigation
+    let calendarDate = new Date();
 
     // =================================================================
     // ELEMENT SELECTORS
@@ -39,12 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const orderModal = document.getElementById('order-modal');
     const confirmDeleteModal = document.getElementById('confirm-delete-modal');
     const loadingSpinner = document.getElementById('loading-spinner');
-    // [NEW] Calendar elements
     const calendarGrid = document.getElementById('calendar-grid');
     const currentWeekDisplay = document.getElementById('current-week-display');
     const prevWeekBtn = document.getElementById('prev-week-btn');
     const nextWeekBtn = document.getElementById('next-week-btn');
-
 
     // =================================================================
     // RENDERING FUNCTIONS
@@ -62,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render() {
         renderTableAndPagination();
-        renderCalendar(); // [NEW] Render calendar whenever data changes
+        renderCalendar();
     }
     
     function renderTableAndPagination() {
@@ -117,13 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationContainer.innerHTML = paginationHtml;
     }
 
-    // =================================================================
-    // [NEW] CALENDAR FUNCTIONS
-    // =================================================================
     function getStartOfWeek(date) {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         d.setDate(diff);
         d.setHours(0, 0, 0, 0);
         return d;
@@ -148,8 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for(let i=0; i<7; i++) {
             const day = new Date(startOfWeek);
             day.setDate(day.getDate() + i);
-            const dayString = day.toISOString().split('T')[0];
-            ordersByDay[dayString] = [];
+            ordersByDay[day.toISOString().split('T')[0]] = [];
         }
 
         scheduledOrders.forEach(order => {
@@ -164,23 +158,17 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(ordersByDay).forEach((dayString, index) => {
             const dayOrders = ordersByDay[dayString];
             const date = new Date(dayString);
+            date.setMinutes(date.getMinutes() + date.getTimezoneOffset()); // Adjust for display
             
             let ordersHtml = '<p class="text-xs text-gray-400">No deliveries</p>';
             if(dayOrders.length > 0) {
                 ordersHtml = '<ul>' + dayOrders.map(o => `<li class="text-xs font-medium text-gray-700 truncate">#${o.orderId} - ${o.customer}</li>`).join('') + '</ul>';
             }
             
-            const dayCell = `
-                <div class="bg-gray-50 rounded-lg p-2 min-h-[100px]">
-                    <div class="text-center font-semibold text-sm">${dayNames[index]}</div>
-                    <div class="text-center text-xs text-gray-500 mb-2">${date.getDate()}</div>
-                    <div class="space-y-1">${ordersHtml}</div>
-                </div>
-            `;
+            const dayCell = `<div class="bg-gray-50 rounded-lg p-2 min-h-[100px]"><div class="text-center font-semibold text-sm">${dayNames[index]}</div><div class="text-center text-xs text-gray-500 mb-2">${date.getDate()}</div><div class="space-y-1">${ordersHtml}</div></div>`;
             calendarGrid.innerHTML += dayCell;
         });
     }
-
 
     // =================================================================
     // MODAL HANDLING
@@ -191,7 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const customerNameInput = orderModal.querySelector('#customer-name');
         const customerAddressInput = orderModal.querySelector('#customer-address');
         const itemsContainer = orderModal.querySelector('#items-container');
-        const editingFields = orderModal.querySelector('#editing-fields');
+        const schedulingFields = orderModal.querySelector('#scheduling-fields');
+        const statusFieldContainer = orderModal.querySelector('#status-field-container');
         const footer = orderModal.querySelector('#modal-footer');
         
         itemsContainer.innerHTML = '';
@@ -200,19 +189,21 @@ document.addEventListener('DOMContentLoaded', () => {
             modalTitle.textContent = 'Add New Order';
             customerNameInput.value = '';
             customerAddressInput.value = '';
-            editingFields.style.display = 'none';
+            schedulingFields.style.display = 'block';
+            orderModal.querySelector('#schedule-date').value = '';
+            statusFieldContainer.style.display = 'none'; // Hide status for new orders
             addEditableItemRow('', '');
             footer.innerHTML = `<button type="button" class="modal-cancel w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancel</button><button id="save-new-order-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 sm:ml-3 sm:w-auto">Create Order</button>`;
         } else { // 'edit'
             modalTitle.textContent = `Edit Order #${order.orderId}`;
             customerNameInput.value = order.customer;
             customerAddressInput.value = order.address;
-            editingFields.style.display = 'block';
+            schedulingFields.style.display = 'block';
+            statusFieldContainer.style.display = 'block'; // Show status for editing
             if (order.items && order.items.length > 0) {
                 order.items.forEach(item => addEditableItemRow(item.item, item.quantity));
             } else { addEditableItemRow('', ''); }
             orderModal.querySelector('#schedule-date').value = order.scheduledDate ? new Date(order.scheduledDate).toISOString().split('T')[0] : '';
-            orderModal.querySelector('#time-slot').value = order.timeSlot || '';
             orderModal.querySelector('#status').value = order.status;
             footer.innerHTML = `<button id="delete-order-btn" type="button" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700">Delete</button><div class="flex-grow"></div><button type="button" class="modal-cancel rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button><button id="save-changes-btn" type="button" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">Save Changes</button>`;
         }
@@ -260,7 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (type === 'new') {
                 orderData.orderId = getNextOrderId();
                 orderData.dateCreated = new Date().toISOString();
-                orderData.status = 'PENDING';
+                // [NEW LOGIC] Set status based on whether a schedule date was provided
+                orderData.status = orderData.scheduledDate ? 'SCHEDULED' : 'PENDING';
                 await ordersCollection.doc(String(orderData.orderId)).set(orderData);
             } else {
                 await ordersCollection.doc(String(orderData.orderId)).update(orderData);
@@ -337,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
             render();
         }
     });
-    // [NEW] Calendar navigation listeners
     prevWeekBtn.addEventListener('click', () => {
         calendarDate.setDate(calendarDate.getDate() - 7);
         renderCalendar();
@@ -352,6 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
             customer: orderModal.querySelector('#customer-name').value,
             address: orderModal.querySelector('#customer-address').value,
             items: [],
+            scheduledDate: orderModal.querySelector('#schedule-date').value || null, // Get schedule date for new orders too
         };
         orderModal.querySelectorAll('#items-container .flex').forEach(row => {
             const name = row.querySelector('.item-name-input').value.trim();
@@ -360,8 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (type === 'edit') {
             data.orderId = currentOrderInModal.orderId;
-            data.scheduledDate = orderModal.querySelector('#schedule-date').value;
-            data.timeSlot = orderModal.querySelector('#time-slot').value;
             data.status = orderModal.querySelector('#status').value;
         }
         return data;
