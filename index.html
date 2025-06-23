@@ -1,127 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gray-100">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="style.css">
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <!-- Theme Color for PWA -->
-    <meta name="theme-color" content="#ffc107">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAPSo Dashboard</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+    .status-pending { color: #991b1b; background-color: #fecaca; }
+    .status-scheduled { color: #1e40af; background-color: #dbeafe; }
+    .status-complete { color: #166534; background-color: #dcfce7; }
+    .status-canceled { color: #374151; background-color: #e5e7eb; }
+    .status-out-for-delivery { color: #9a3412; background-color: #ffedd5; }
+    .hidden { display: none; }
+  </style>
 </head>
-<body class="bg-light">
+<body class="h-full">
 
-    <div class="container-fluid p-0">
-        <!-- Header -->
-        <header class="header-main text-center text-dark p-3 mb-4 shadow-sm">
-            <h1 class="h4 m-0">CAPSo Hardware Dashboard</h1>
-        </header>
-
-        <div class="container">
-            <!-- Action Bar -->
-            <div class="d-grid gap-2 mb-4">
-                <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#addOrderModal">
-                    Add New Order
-                </button>
-            </div>
-
-            <!-- Orders Table -->
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div id="loader" class="text-center p-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Customer</th>
-                                    <th>Address</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="orders-table-body">
-                                <!-- Orders will be injected here by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="min-h-full">
+  <header class="bg-yellow-300 shadow">
+    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <h1 class="text-3xl font-bold tracking-tight text-gray-900">CAPSo Hardware Dashboard</h1>
     </div>
+  </header>
+  <main>
+    <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+      
+      <div class="mb-4 flex justify-center">
+        <button id="add-new-order-btn" type="button" class="rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-green-700">Add New Order</button>
+      </div>
 
-    <!-- Add New Order Modal -->
-    <div class="modal fade" id="addOrderModal" tabindex="-1" aria-labelledby="addOrderModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="addOrderModalLabel">Add New Order</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="add-order-form">
-              <div class="mb-3">
-                <label for="customerName" class="form-label">Customer Name</label>
-                <input type="text" class="form-control" id="customerName" placeholder="Enter customer name" required>
+      <div class="filters mb-6 flex justify-center space-x-2">
+        <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium bg-gray-800 text-white" data-filter="All">All</button>
+        <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-filter="Active">Active</button>
+        <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-filter="COMPLETE">Complete</button>
+        <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-filter="OUT FOR DELIVERY">Out for Delivery</button>
+        <button class="filter-btn rounded-md px-3 py-2 text-sm font-medium text-gray-700 bg-white ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-filter="CANCELED">Canceled</button>
+      </div>
+      
+      <div id="loading-spinner" class="text-center py-8">
+          <p class="text-gray-500">Loading orders...</p>
+      </div>
+      
+      <div class="space-y-4" id="orders-list-container"></div>
+      <div id="table-pagination" class="mt-6 flex items-center justify-center space-x-2"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modals -->
+<div id="order-modal" class="hidden relative z-10">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl sm:my-8 sm:w-full sm:max-w-lg">
+          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Modal Title</h3>
+            <div class="mt-4 space-y-4">
+              <div>
+                <label for="customer-name" class="block text-sm font-medium">Customer Name</label>
+                <input type="text" id="customer-name" class="block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300">
               </div>
-              <div class="mb-3">
-                <label for="address" class="form-label">Address</label>
-                <input type="text" class="form-control" id="address" placeholder="Enter full address" required>
+              <div>
+                <label for="customer-address" class="block text-sm font-medium">Address</label>
+                <input type="text" id="customer-address" class="block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300">
               </div>
-               <!-- Simple items input for now -->
-              <div class="mb-3">
-                <label for="items" class="form-label">Items</label>
-                <textarea class="form-control" id="items" rows="3" placeholder="e.g., Tub 4x4 - 3pcs"></textarea>
+              <div class="border-t pt-4">
+                <label class="block text-sm font-medium">Items</label>
+                <div id="items-container" class="mt-2 space-y-2"></div>
+                <button id="add-item-btn" type="button" class="mt-2 rounded-md bg-white px-2.5 py-1.5 text-sm ring-1 ring-inset ring-gray-300">Add Item</button>
               </div>
-            </form>
+              <div id="editing-fields" class="space-y-4 border-t pt-4">
+                 <div>
+                    <label for="schedule-date" class="block text-sm font-medium">Scheduled Date</label>
+                    <input type="date" id="schedule-date" class="block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300">
+                  </div>
+                  <div>
+                    <label for="time-slot" class="block text-sm font-medium">Time Slot</label>
+                    <select id="time-slot" class="block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300">
+                      <option value="">Not Set</option><option value="9AM-11AM">AM</option><option value="1PM-4PM">PM</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="status" class="block text-sm font-medium">Status</label>
+                    <select id="status" class="block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300">
+                      <option>PENDING</option><option>SCHEDULED</option><option>OUT FOR DELIVERY</option><option>COMPLETE</option><option>CANCELED</option>
+                    </select>
+                  </div>
+              </div>
+            </div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" id="save-order-btn" class="btn btn-primary">Save Order</button>
-          </div>
+          <div class="bg-gray-50 px-4 py-3 sm:flex sm:px-6" id="modal-footer"></div>
         </div>
       </div>
     </div>
-
-
-    <!-- Order Details Modal -->
-    <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="order-details-body">
-                    <!-- Details will be loaded here -->
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-danger" id="delete-order-btn">Delete</button>
-                    <div>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <!-- Edit/Save functionality can be added later -->
-                    </div>
-                </div>
+</div>
+<div id="confirm-delete-modal" class="hidden relative z-20">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl sm:my-8 sm:w-full sm:max-w-lg">
+            <h3 class="text-base font-semibold">Delete Order</h3>
+            <p class="text-sm text-gray-500" id="confirm-delete-message">Are you sure?</p>
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                <button id="confirm-delete-btn" type="button" class="w-full justify-center rounded-md bg-red-600 px-3 py-2 text-white">Delete</button>
+                <button id="cancel-delete-btn" type="button" class="mt-3 w-full justify-center rounded-md bg-white px-3 py-2 ring-1 ring-inset ring-gray-300 sm:mt-0">Cancel</button>
             </div>
         </div>
+      </div>
     </div>
+</div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="script.js"></script>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-    <!-- Your App's JavaScript -->
-    <script src="app.js"></script>
 </body>
 </html>
