@@ -1,7 +1,7 @@
 // service-worker.js
 
 // Define a name for the cache
-const CACHE_NAME = 'capso-dashboard-v3'; // <-- Changed cache name again to trigger update
+const CACHE_NAME = 'capso-dashboard-v4'; // <-- Changed cache name again to trigger update
 
 // List all the files that make up the app shell, which we want to cache
 // PATHS CORRECTED HERE
