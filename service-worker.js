@@ -1,16 +1,17 @@
 // service-worker.js
 
 // Define a name for the cache
-const CACHE_NAME = 'capso-dashboard-v2'; // <-- Changed cache name to trigger update
+const CACHE_NAME = 'capso-dashboard-v3'; // <-- Changed cache name again to trigger update
 
 // List all the files that make up the app shell, which we want to cache
+// PATHS CORRECTED HERE
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/script.js',
-  '/manifest.json',
-  '/Images/logo-192.png', // <-- Added your new logo
-  '/Images/logo-512.png', // <-- Added your new logo
+  './',
+  'index.html',
+  'script.js',
+  'manifest.json',
+  'images/logo-192.png',
+  'images/logo-512.png',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
@@ -40,7 +41,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Clearing old cache');
+            console.log('Service Worker: Clearing old cache:', cache);
             return caches.delete(cache);
           }
         })
@@ -65,10 +66,11 @@ self.addEventListener('fetch', event => {
 // 4. Push: Handling Incoming Push Notifications
 self.addEventListener('push', event => {
     console.log('Service Worker: Push Received.');
+    // PATHS CORRECTED HERE
     let data = {
         title: 'New Notification',
         body: 'Something new happened!',
-        icon: '/Images/logo-192.png' // <-- Use new logo in notifications
+        icon: 'images/logo-192.png'
     };
 
     if (event.data) {
@@ -83,7 +85,7 @@ self.addEventListener('push', event => {
     const options = {
         body: data.body,
         icon: data.icon,
-        badge: '/Images/logo-192.png',
+        badge: 'images/logo-192.png',
         vibrate: [200, 100, 200]
     };
 
