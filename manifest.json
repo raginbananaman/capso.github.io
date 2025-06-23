@@ -1,6 +1,6 @@
 {
   "name": "CAPSo Hardware Dashboard",
-  "short_name": "CAPSo Dash",
+  "short_name": "CAPSoDash",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
