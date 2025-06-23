@@ -4,12 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // PASTE THE firebaseConfig OBJECT YOU SAVED EARLIER FROM YOUR FIREBASE PROJECT
     const firebaseConfig = {
-        apiKey: "REPLACE_ME",
-        authDomain: "REPLACE_ME",
-        projectId: "REPLACE_ME",
-        storageBucket: "REPLACE_ME",
-        messagingSenderId: "REPLACE_ME",
-        appId: "REPLACE_ME"
+        apiKey: "AIzaSyCjKJmXAJ0C8v1To1tFaAyucfo8YRFTjcw",
+        authDomain: "capso-dashboard-pwa.firebaseapp.com",
+        projectId: "capso-dashboard-pwa",
+        storageBucket: "capso-dashboard-pwa.firebasestorage.app",
+        messagingSenderId: "389493283794",
+        appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
 
     // =================================================================
