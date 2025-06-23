@@ -9,8 +9,8 @@ const urlsToCache = [
   '/index.html',
   '/script.js',
   '/manifest.json',
-  '/images/logo-192.png', // <-- Added your new logo
-  '/images/logo-512.png', // <-- Added your new logo
+  '/Images/logo-192.png', // <-- Added your new logo
+  '/Images/logo-512.png', // <-- Added your new logo
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
@@ -68,7 +68,7 @@ self.addEventListener('push', event => {
     let data = {
         title: 'New Notification',
         body: 'Something new happened!',
-        icon: '/images/logo-192.png' // <-- Use new logo in notifications
+        icon: '/Images/logo-192.png' // <-- Use new logo in notifications
     };
 
     if (event.data) {
@@ -83,7 +83,7 @@ self.addEventListener('push', event => {
     const options = {
         body: data.body,
         icon: data.icon,
-        badge: '/images/logo-192.png',
+        badge: '/Images/logo-192.png',
         vibrate: [200, 100, 200]
     };
 
