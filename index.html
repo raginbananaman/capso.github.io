@@ -36,6 +36,10 @@
     input:checked + .slider { background-color: #4ade80; }
     input:checked + .slider:before { transform: translateX(16px); }
 
+    /* Hide scrollbar for calendar carousel */
+    #calendar-grid::-webkit-scrollbar { display: none; }
+    #calendar-grid { -ms-overflow-style: none; scrollbar-width: none; }
+
   </style>
 </head>
 <body class="h-full">
@@ -71,7 +75,7 @@
       </div>
 
       <!-- Calendar Section -->
-      <div class="mb-8 bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg p-4 sm:p-6">
+      <div class="mb-8 bg-transparent md:bg-white md:shadow-sm md:ring-1 md:ring-gray-900/5 md:rounded-lg md:p-4 md:sm:p-6">
           <div class="flex items-center justify-between mb-4">
               <button id="prev-week-btn" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Previous</button>
               <h2 id="current-week-display" class="text-lg font-semibold text-gray-900 text-center"></h2>
@@ -90,22 +94,24 @@
       
       <!-- SKELETON LOADER -->
       <div id="skeleton-loader" class="space-y-4">
-        <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg animate-pulse">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
             <div class="p-4 sm:p-6 h-28">
-                <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/4 mb-3"></div>
+                <div class="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
             </div>
-            <div class="border-t p-4 h-14">
-                <div class="h-8 bg-gray-200 rounded w-full"></div>
+            <div class="px-4 py-3 sm:px-6 bg-gray-50 h-14">
+                <div class="h-9 bg-gray-200 rounded w-full"></div>
             </div>
         </div>
-         <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg animate-pulse">
+         <div class="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
             <div class="p-4 sm:p-6 h-28">
-                <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/4 mb-3"></div>
+                <div class="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
             </div>
-            <div class="border-t p-4 h-14">
-                <div class="h-8 bg-gray-200 rounded w-full"></div>
+            <div class="px-4 py-3 sm:px-6 bg-gray-50 h-14">
+                <div class="h-9 bg-gray-200 rounded w-full"></div>
             </div>
         </div>
       </div>
