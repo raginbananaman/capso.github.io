@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
 
-         // =================================================================
+   // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -59,11 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function render() {
-        renderTableAndPagination();
+        renderOrdersList();
         renderCalendar();
     }
     
-    function renderTableAndPagination() {
+    function renderOrdersList() {
         const filtered = allOrders.filter(order => {
             if (!order) return false;
             if (currentFilter === 'All') return true;
@@ -175,26 +175,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     function setupModal(isNew, order = {}) {
         const modalContainer = document.getElementById('order-modal');
-        const contentContainer = modalContainer.querySelector('.modal-content-container');
+        const contentContainer = document.getElementById('modal-content-container');
         
         currentOrderInModal = order;
         
         if (isNew) {
-            contentContainer.classList.add('edit-mode');
+            setModalMode('edit');
             modalContainer.querySelector('#modal-title').textContent = 'Add New Order';
+            populateEditView({});
+            const footer = modalContainer.querySelector('#modal-footer');
+            footer.innerHTML = `<button type="button" class="modal-cancel w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancel</button><button id="save-new-order-btn" type="button" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 sm:ml-3 sm:w-auto">Create Order</button>`;
         } else {
-            contentContainer.classList.remove('edit-mode');
+            setModalMode('view');
             modalContainer.querySelector('#modal-title').textContent = 'Order Details';
             populateDisplayView(order);
+            populateEditView(order); // Also populate edit view so data is ready
         }
         
-        populateEditView(order);
         modalContainer.classList.remove('hidden');
+    }
+    
+    function setModalMode(mode) {
+        const contentContainer = document.getElementById('modal-content-container');
+        if (mode === 'edit') {
+            contentContainer.classList.remove('view-mode');
+            contentContainer.classList.add('edit-mode');
+        } else { // view
+            contentContainer.classList.remove('edit-mode');
+            contentContainer.classList.add('view-mode');
+        }
     }
 
     function populateDisplayView(order) {
         document.getElementById('display-order-id').textContent = order.orderId;
-        document.getElementById('display-date-created').textContent = new Date(order.dateCreated).toLocaleString();
+        document.getElementById('display-date-created').textContent = order.dateCreated ? new Date(order.dateCreated).toLocaleString() : 'N/A';
         document.getElementById('display-customer-name').textContent = order.customer;
         document.getElementById('display-customer-address').textContent = order.address;
         document.getElementById('display-schedule-date').textContent = order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not Scheduled';
@@ -215,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('customer-address').value = order.address || '';
         document.getElementById('schedule-date').value = order.scheduledDate ? new Date(order.scheduledDate).toISOString().split('T')[0] : '';
         document.getElementById('status').value = order.status || 'PENDING';
+        document.getElementById('status-field-container').style.display = order.orderId ? 'block' : 'none'; // Hide status for new orders
         
         const itemsContainer = document.getElementById('items-container');
         itemsContainer.innerHTML = '';
@@ -233,10 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsContainer.appendChild(itemRow);
     }
     
-    function closeModal() {
-        const modalContainer = document.getElementById('order-modal');
-        modalContainer.classList.add('hidden');
-    }
+    function closeModal() { orderModal.classList.add('hidden'); }
 
     // =================================================================
     // FIRESTORE ACTIONS
@@ -249,26 +261,24 @@ document.addEventListener('DOMContentLoaded', () => {
             render();
         } catch (error) {
             console.error("Error fetching data: ", error);
-            alert("Could not fetch data from the database. Check console for errors and ensure your firebaseConfig is correct.");
+            alert("Could not fetch data. Check console and Firebase config.");
         } finally {
             hideSpinner();
         }
     }
 
     async function handleSave() {
-        const orderData = getOrderDataFromModal();
+        const isNew = !currentOrderInModal.docId;
+        const orderData = getOrderDataFromModal(isNew);
         showSpinner('Saving...');
         try {
-            // If it's a new order, it won't have a docId yet.
-            if (!currentOrderInModal.docId) { 
+            if (isNew) {
                 orderData.orderId = allOrders.length > 0 ? Math.max(...allOrders.map(o => o.orderId)) + 1 : 1;
                 orderData.dateCreated = new Date().toISOString();
-                if (!orderData.status) { // Set status if it's a new order
-                    orderData.status = orderData.scheduledDate ? 'SCHEDULED' : 'PENDING';
-                }
+                orderData.status = orderData.scheduledDate ? 'SCHEDULED' : 'PENDING';
                 await ordersCollection.doc(String(orderData.orderId)).set(orderData);
-            } else { // It's an existing order
-                orderData.orderId = currentOrderInModal.orderId;
+            } else {
+                orderData.orderId = currentOrderInModal.orderId; // Make sure ID is preserved
                 await ordersCollection.doc(currentOrderInModal.docId).update(orderData);
             }
             await fetchData(); 
@@ -311,14 +321,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     orderModal.addEventListener('click', e => {
         const target = e.target;
-        const modalContent = target.closest('.modal-content-container');
-
         if (target.closest('.modal-cancel')) { closeModal(); }
         if (target.closest('#add-item-btn')) { addEditableItemRow('', ''); }
         if (target.closest('.remove-item-btn')) { target.closest('.flex').remove(); }
-        if (target.closest('#edit-order-btn')) { if (modalContent) modalContent.classList.remove('view-mode'); modalContent.classList.add('edit-mode'); }
-        if (target.closest('#save-changes-btn')) { handleSave(); }
-        if (target.closest('#save-new-order-btn')) { handleSave(); } // [NEW] Save button for new order
+        if (target.closest('#edit-order-btn')) { setModalMode('edit'); }
+        if (target.closest('#save-changes-btn') || target.closest('#save-new-order-btn')) { handleSave(); }
         if (target.closest('#delete-order-btn')) {
             confirmDeleteModal.querySelector('#confirm-delete-message').textContent = `Are you sure you want to delete order #${currentOrderInModal.orderId}?`;
             confirmDeleteModal.classList.remove('hidden');
@@ -356,13 +363,16 @@ document.addEventListener('DOMContentLoaded', () => {
     nextWeekBtn.addEventListener('click', () => { calendarDate.setDate(calendarDate.getDate() + 7); renderCalendar(); });
 
     function getOrderDataFromModal() {
+        const isNew = !currentOrderInModal.docId;
         const data = {
             customer: document.getElementById('customer-name').value,
             address: document.getElementById('customer-address').value,
             items: [],
             scheduledDate: document.getElementById('schedule-date').value || null,
-            status: document.getElementById('status').value,
         };
+        if (!isNew) {
+            data.status = document.getElementById('status').value;
+        }
         document.getElementById('items-container').querySelectorAll('.flex').forEach(row => {
             const name = row.querySelector('.item-name-input').value.trim();
             const qty = row.querySelector('.item-qty-input').value.trim();
@@ -376,3 +386,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     fetchData(); 
 });
+
