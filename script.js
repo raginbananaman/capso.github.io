@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // THIS IS THE VAPID KEY FOR WEB PUSH NOTIFICATIONS.
     // GET THIS FROM: Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
-    const VAPID_KEY = "BL_43FfHONt9UDcrI4nBH6McL4eW-6kyy2m-54wmOpWTCDL7ebHh_jc1gqQtUj-2gBstZ4yFf40ElGw3DtPc1PM";
+    const VAPID_KEY = "YOUR_VAPID_KEY_HERE";
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
