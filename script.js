@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
 
-       // =================================================================
+         // =================================================================
     // INITIALIZE FIREBASE
     // =================================================================
     firebase.initializeApp(firebaseConfig);
@@ -233,7 +233,10 @@ document.addEventListener('DOMContentLoaded', () => {
         itemsContainer.appendChild(itemRow);
     }
     
-    function closeModal() { orderModal.classList.add('hidden'); }
+    function closeModal() {
+        const modalContainer = document.getElementById('order-modal');
+        modalContainer.classList.add('hidden');
+    }
 
     // =================================================================
     // FIRESTORE ACTIONS
@@ -315,14 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.closest('.remove-item-btn')) { target.closest('.flex').remove(); }
         if (target.closest('#edit-order-btn')) { if (modalContent) modalContent.classList.remove('view-mode'); modalContent.classList.add('edit-mode'); }
         if (target.closest('#save-changes-btn')) { handleSave(); }
+        if (target.closest('#save-new-order-btn')) { handleSave(); } // [NEW] Save button for new order
         if (target.closest('#delete-order-btn')) {
             confirmDeleteModal.querySelector('#confirm-delete-message').textContent = `Are you sure you want to delete order #${currentOrderInModal.orderId}?`;
             confirmDeleteModal.classList.remove('hidden');
         }
-    });
-
-    document.getElementById('add-order-modal')?.addEventListener('click', e => {
-        // This modal is no longer used, but keeping listener to prevent errors if HTML is not updated.
     });
     
     confirmDeleteModal.addEventListener('click', e => {
