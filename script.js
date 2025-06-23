@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // CONFIGURATION
     // =================================================================
-    // PASTE THE firebaseConfig OBJECT YOU SAVED EARLIER
+    // PASTE THE firebaseConfig OBJECT YOU SAVED EARLIER FROM YOUR FIREBASE PROJECT
     const firebaseConfig = {
         apiKey: "REPLACE_ME",
         authDomain: "REPLACE_ME",
@@ -165,12 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchData() {
         showSpinner();
         try {
-            const snapshot = await ordersCollection.get();
+            const snapshot = await ordersCollection.orderBy("orderId", "desc").get();
             allOrders = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
             render();
         } catch (error) {
             console.error("Error fetching data: ", error);
-            alert("Could not fetch data from the database. Check console for errors.");
+            alert("Could not fetch data from the database. Check console for errors and ensure your firebaseConfig is correct.");
         } finally {
             hideSpinner();
         }
@@ -184,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 orderData.orderId = getNextOrderId();
                 orderData.dateCreated = new Date().toISOString();
                 orderData.status = 'PENDING';
+                // Firestore document IDs must be strings
                 await ordersCollection.doc(String(orderData.orderId)).set(orderData);
             } else {
                 await ordersCollection.doc(String(orderData.orderId)).update(orderData);
@@ -226,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     orderModal.addEventListener('click', e => {
-        if (e.target.classList.contains('modal-cancel')) { closeModal(); }
+        if (e.target.closest('.modal-cancel')) { closeModal(); }
         if (e.target.closest('#add-item-btn')) { addEditableItemRow('', ''); }
         if (e.target.closest('.remove-item-btn')) { e.target.closest('.flex').remove(); }
         if (e.target.closest('#save-new-order-btn')) { handleSave('new'); }
