@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const rowsPerPage = 10;
     let currentOrderInModal = null;
+    let calendarDate = new Date(); // [NEW] Date for calendar navigation
 
     // =================================================================
     // ELEMENT SELECTORS
@@ -38,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const orderModal = document.getElementById('order-modal');
     const confirmDeleteModal = document.getElementById('confirm-delete-modal');
     const loadingSpinner = document.getElementById('loading-spinner');
+    // [NEW] Calendar elements
+    const calendarGrid = document.getElementById('calendar-grid');
+    const currentWeekDisplay = document.getElementById('current-week-display');
+    const prevWeekBtn = document.getElementById('prev-week-btn');
+    const nextWeekBtn = document.getElementById('next-week-btn');
+
 
     // =================================================================
     // RENDERING FUNCTIONS
@@ -54,6 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function render() {
+        renderTableAndPagination();
+        renderCalendar(); // [NEW] Render calendar whenever data changes
+    }
+    
+    function renderTableAndPagination() {
         const filtered = allOrders.filter(order => {
             if (!order) return false;
             if (currentFilter === 'All') return true;
@@ -104,6 +116,71 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         paginationContainer.innerHTML = paginationHtml;
     }
+
+    // =================================================================
+    // [NEW] CALENDAR FUNCTIONS
+    // =================================================================
+    function getStartOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    function renderCalendar() {
+        const startOfWeek = getStartOfWeek(calendarDate);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        const monthFormat = new Intl.DateTimeFormat('en-US', { month: 'short' });
+        currentWeekDisplay.textContent = `${monthFormat.format(startOfWeek)} ${startOfWeek.getDate()} - ${monthFormat.format(endOfWeek)} ${endOfWeek.getDate()}, ${endOfWeek.getFullYear()}`;
+        
+        const scheduledOrders = allOrders.filter(order => {
+            if (!order.scheduledDate) return false;
+            const scheduled = new Date(order.scheduledDate);
+            return scheduled >= startOfWeek && scheduled <= endOfWeek;
+        });
+
+        const ordersByDay = {};
+        for(let i=0; i<7; i++) {
+            const day = new Date(startOfWeek);
+            day.setDate(day.getDate() + i);
+            const dayString = day.toISOString().split('T')[0];
+            ordersByDay[dayString] = [];
+        }
+
+        scheduledOrders.forEach(order => {
+            const dayString = new Date(order.scheduledDate).toISOString().split('T')[0];
+            if(ordersByDay[dayString]) {
+                ordersByDay[dayString].push(order);
+            }
+        });
+
+        calendarGrid.innerHTML = '';
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        Object.keys(ordersByDay).forEach((dayString, index) => {
+            const dayOrders = ordersByDay[dayString];
+            const date = new Date(dayString);
+            
+            let ordersHtml = '<p class="text-xs text-gray-400">No deliveries</p>';
+            if(dayOrders.length > 0) {
+                ordersHtml = '<ul>' + dayOrders.map(o => `<li class="text-xs font-medium text-gray-700 truncate">#${o.orderId} - ${o.customer}</li>`).join('') + '</ul>';
+            }
+            
+            const dayCell = `
+                <div class="bg-gray-50 rounded-lg p-2 min-h-[100px]">
+                    <div class="text-center font-semibold text-sm">${dayNames[index]}</div>
+                    <div class="text-center text-xs text-gray-500 mb-2">${date.getDate()}</div>
+                    <div class="space-y-1">${ordersHtml}</div>
+                </div>
+            `;
+            calendarGrid.innerHTML += dayCell;
+        });
+    }
+
 
     // =================================================================
     // MODAL HANDLING
@@ -184,12 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 orderData.orderId = getNextOrderId();
                 orderData.dateCreated = new Date().toISOString();
                 orderData.status = 'PENDING';
-                // Firestore document IDs must be strings
                 await ordersCollection.doc(String(orderData.orderId)).set(orderData);
             } else {
                 await ordersCollection.doc(String(orderData.orderId)).update(orderData);
             }
-            await fetchData(); // Refresh data from Firestore
+            await fetchData(); 
             closeModal();
         } catch (error) {
             console.error("Error saving data: ", error);
@@ -204,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await ordersCollection.doc(String(currentOrderInModal.orderId)).delete();
             confirmDeleteModal.classList.add('hidden');
-            await fetchData(); // Refresh data
+            await fetchData();
             closeModal();
         } catch(error) {
             console.error("Error deleting document: ", error);
@@ -261,6 +337,16 @@ document.addEventListener('DOMContentLoaded', () => {
             render();
         }
     });
+    // [NEW] Calendar navigation listeners
+    prevWeekBtn.addEventListener('click', () => {
+        calendarDate.setDate(calendarDate.getDate() - 7);
+        renderCalendar();
+    });
+    nextWeekBtn.addEventListener('click', () => {
+        calendarDate.setDate(calendarDate.getDate() + 7);
+        renderCalendar();
+    });
+
     function getOrderDataFromModal(type = 'new') {
         const data = {
             customer: orderModal.querySelector('#customer-name').value,
