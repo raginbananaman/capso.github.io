@@ -14,8 +14,7 @@
 <body class="h-full">
 
 <div class="min-h-full">
-    
-    <!-- The shared navigation will be loaded into this empty div -->
+    <!-- The shared navigation will be loaded here by navigation.js -->
     <div id="nav-placeholder"></div>
 
     <main>
@@ -75,7 +74,13 @@
 
 <!-- Scripts MUST be in this order -->
 <script src="navigation.js"></script>
-<script src="inventory.js"></script>
+
+<!-- Add the Firebase library scripts -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- The defer attribute ensures this script runs after the page is fully parsed -->
+<script src="inventory.js" defer></script>
 
 </body>
 </html>
