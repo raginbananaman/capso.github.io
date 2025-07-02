@@ -27,19 +27,24 @@ document.addEventListener('navigationLoaded', () => {
     const quoteBody = document.getElementById('quote-body');
     const grandTotalSpan = document.getElementById('grand-total');
     const clearQuoteBtn = document.getElementById('clear-quote-btn');
-    // --- Selectors for the quantity modal ---
+    const copyQuoteBtn = document.getElementById('copy-quote-btn');
+    // --- Quantity Modal ---
     const quantityModal = document.getElementById('quantity-modal');
     const quantityModalTitle = document.getElementById('quantity-modal-title');
     const quantityInput = document.getElementById('quantity-input');
     const confirmQuantityBtn = document.getElementById('confirm-quantity-btn');
     const cancelQuantityBtn = document.getElementById('cancel-quantity-btn');
+    // --- Clear Confirmation Modal ---
+    const confirmClearModal = document.getElementById('confirm-clear-modal');
+    const confirmClearBtn = document.getElementById('confirm-clear-btn');
+    const cancelClearBtn = document.getElementById('cancel-clear-btn');
 
     // =================================================================
     // STATE
     // =================================================================
     let allInventory = [];
     let quoteItems = [];
-    let currentItemForQuote = null; // Temporarily store the item being added
+    let currentItemForQuote = null;
 
     // =================================================================
     // FUNCTIONS
@@ -144,6 +149,51 @@ document.addEventListener('navigationLoaded', () => {
         }
     }
 
+    function handleCopyQuote() {
+        if (quoteItems.length === 0) {
+            alert("Quotation is empty. Add items to copy.");
+            return;
+        }
+
+        let quoteText = "CAPSo Hardware Quotation\n";
+        quoteText += "=========================\n\n";
+
+        quoteItems.forEach(item => {
+            const itemTotal = item.quantity * item.unitPrice;
+            const formattedPrice = item.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const formattedTotal = itemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            quoteText += `${item.itemName}\n`;
+            quoteText += `  ${item.quantity} x ₱${formattedPrice} = ₱${formattedTotal}\n\n`;
+        });
+
+        const grandTotal = quoteItems.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
+        const formattedGrandTotal = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        quoteText += "=========================\n";
+        quoteText += `GRAND TOTAL: ₱${formattedGrandTotal}\n`;
+        quoteText += `Quotation generated on: ${new Date().toLocaleString()}`;
+
+        // Use the clipboard API
+        const textarea = document.createElement('textarea');
+        textarea.value = quoteText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        // Provide user feedback
+        const originalText = copyQuoteBtn.textContent;
+        copyQuoteBtn.textContent = 'Copied!';
+        copyQuoteBtn.classList.add('bg-green-600', 'hover:bg-green-500');
+        copyQuoteBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+        
+        setTimeout(() => {
+            copyQuoteBtn.textContent = originalText;
+            copyQuoteBtn.classList.remove('bg-green-600', 'hover:bg-green-500');
+            copyQuoteBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+        }, 2000);
+    }
+
     // =================================================================
     // EVENT HANDLERS
     // =================================================================
@@ -162,27 +212,31 @@ document.addEventListener('navigationLoaded', () => {
 
     if (clearQuoteBtn) {
         clearQuoteBtn.addEventListener('click', () => {
-            if (confirm("Are you sure you want to clear the entire quote?")) {
-                quoteItems = [];
-                renderQuote();
-            }
+            confirmClearModal.classList.remove('hidden');
         });
     }
 
+    if (copyQuoteBtn) {
+        copyQuoteBtn.addEventListener('click', handleCopyQuote);
+    }
+
     // --- Modal Event Handlers ---
-    if (confirmQuantityBtn) {
-        confirmQuantityBtn.addEventListener('click', handleConfirmQuantity);
+    if (confirmQuantityBtn) confirmQuantityBtn.addEventListener('click', handleConfirmQuantity);
+    if (cancelQuantityBtn) cancelQuantityBtn.addEventListener('click', closeQuantityModal);
+    if (quantityInput) quantityInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleConfirmQuantity();
+    });
+
+    if (confirmClearBtn) {
+        confirmClearBtn.addEventListener('click', () => {
+            quoteItems = [];
+            renderQuote();
+            confirmClearModal.classList.add('hidden');
+        });
     }
-    
-    if (cancelQuantityBtn) {
-        cancelQuantityBtn.addEventListener('click', closeQuantityModal);
-    }
-    
-    if (quantityInput) {
-        quantityInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                handleConfirmQuantity();
-            }
+    if (cancelClearBtn) {
+        cancelClearBtn.addEventListener('click', () => {
+            confirmClearModal.classList.add('hidden');
         });
     }
 
