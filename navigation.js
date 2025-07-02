@@ -1,47 +1,44 @@
 // navigation.js
 // This script fetches and injects the shared navigation, then highlights the active page.
+// It now dispatches a custom event to signal when it's finished.
 
 document.addEventListener("DOMContentLoaded", function() {
-    // The element where the navigation will be placed.
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (!navPlaceholder) {
         console.error("Critical Error: Navigation placeholder div not found!");
         return;
     }
 
-    // Fetch the navigation HTML from the external file.
     fetch('nav.html')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
+                throw new Error('Network response was not ok');
             }
             return response.text();
         })
         .then(html => {
-            // Inject the fetched HTML into the placeholder.
             navPlaceholder.innerHTML = html;
-            // After loading, highlight the correct link.
             highlightActiveLink();
+
+            // This is the key change:
+            // Announce that the navigation has been successfully loaded.
+            // Other scripts can now listen for this event.
+            document.dispatchEvent(new CustomEvent('navigationLoaded'));
+            console.log("Navigation loaded and 'navigationLoaded' event dispatched.");
         })
         .catch(error => {
             console.error('Failed to load navigation:', error);
-            navPlaceholder.innerHTML = '<p style="color:red;">Error: Could not load navigation menu.</p>';
+            navPlaceholder.innerHTML = '<p style="color:red; text-align:center;">Error: Could not load navigation menu.</p>';
         });
 });
 
-/**
- * Finds the current page's link in the navigation and adds an 'active' class to it.
- */
 function highlightActiveLink() {
-    // Get the filename of the current page (e.g., "index.html").
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
-    // Get all the links within the navigation.
-    const navLinks = document.querySelectorAll('nav a.nav-link');
+    // The navigation is now inside the placeholder, so we query within it.
+    const navLinks = document.querySelectorAll('#nav-placeholder nav a.nav-link');
 
     navLinks.forEach(link => {
         const linkPage = link.getAttribute('href').split('/').pop();
-        // If the link's href matches the current page, add the 'active' class.
         if (linkPage === currentPage) {
             link.classList.add('active');
         }
