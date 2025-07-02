@@ -6,17 +6,20 @@ body {
 }
 
 /* --- Shared Navigation --- */
-/* This ensures the nav links have a consistent style */
+/* Desktop nav links */
 nav a.nav-link {
-    @apply px-3 py-2 rounded-md text-sm font-medium;
+    @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-700 hover:text-white;
 }
-/* This is the style for the currently active page link */
 nav a.nav-link.active {
     @apply bg-gray-900 text-white;
 }
-/* This is the style for inactive links */
-nav a.nav-link:not(.active) {
+
+/* --- NEW: Mobile nav links --- */
+a.nav-link-mobile {
     @apply text-gray-700 hover:bg-gray-700 hover:text-white;
+}
+a.nav-link-mobile.active {
+    @apply bg-gray-900 text-white;
 }
 
 
