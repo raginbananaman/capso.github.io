@@ -14,7 +14,7 @@
 <body class="h-full">
 
 <div class="min-h-full">
-    <!-- The shared navigation will be loaded here by navigation.js -->
+    <!-- The shared navigation will be loaAded here by navigation.js -->
     <div id="nav-placeholder"></div>
 
     <main>
@@ -72,14 +72,33 @@
     </main>
 </div>
 
+<!-- NEW: Quantity Input Modal -->
+<div id="quantity-modal" class="hidden relative z-30">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl sm:my-8 sm:w-full sm:max-w-sm">
+                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg font-semibold leading-6 text-gray-900" id="quantity-modal-title">Enter Quantity</h3>
+                    <div class="mt-4">
+                        <label for="quantity-input" class="sr-only">Quantity</label>
+                        <input type="number" id="quantity-input" value="1" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg p-3 text-center">
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                    <button type="button" id="confirm-quantity-btn" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto">Confirm</button>
+                    <button type="button" id="cancel-quantity-btn" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <!-- Scripts MUST be in this order -->
 <script src="navigation.js"></script>
-
-<!-- Add the Firebase library scripts -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<!-- This script now runs without defer, as it waits for a custom event -->
 <script src="inventory.js"></script>
 
 </body>
