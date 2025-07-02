@@ -1,7 +1,4 @@
 // navigation.js
-// This script fetches and injects the shared navigation, then highlights the active page.
-// It now dispatches a custom event to signal when it's finished.
-
 document.addEventListener("DOMContentLoaded", function() {
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (!navPlaceholder) {
@@ -11,18 +8,28 @@ document.addEventListener("DOMContentLoaded", function() {
 
     fetch('nav.html')
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
         })
         .then(html => {
             navPlaceholder.innerHTML = html;
             highlightActiveLink();
 
-            // This is the key change:
-            // Announce that the navigation has been successfully loaded.
-            // Other scripts can now listen for this event.
+            // --- NEW MOBILE MENU LOGIC ---
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const hamburgerIcon = document.getElementById('hamburger-icon');
+            const closeIcon = document.getElementById('close-icon');
+
+            if (mobileMenuButton && mobileMenu && hamburgerIcon && closeIcon) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                    hamburgerIcon.classList.toggle('hidden');
+                    closeIcon.classList.toggle('hidden');
+                });
+            }
+            // --- END NEW LOGIC ---
+
             document.dispatchEvent(new CustomEvent('navigationLoaded'));
             console.log("Navigation loaded and 'navigationLoaded' event dispatched.");
         })
@@ -34,10 +41,19 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function highlightActiveLink() {
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-    // The navigation is now inside the placeholder, so we query within it.
-    const navLinks = document.querySelectorAll('#nav-placeholder nav a.nav-link');
-
+    
+    // Highlight desktop links
+    const navLinks = document.querySelectorAll('nav a.nav-link');
     navLinks.forEach(link => {
+        const linkPage = link.getAttribute('href').split('/').pop();
+        if (linkPage === currentPage) {
+            link.classList.add('active');
+        }
+    });
+
+    // Highlight mobile links
+    const mobileNavLinks = document.querySelectorAll('#mobile-menu a.nav-link-mobile');
+    mobileNavLinks.forEach(link => {
         const linkPage = link.getAttribute('href').split('/').pop();
         if (linkPage === currentPage) {
             link.classList.add('active');
