@@ -6,7 +6,10 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
     }
 
-    fetch('nav.html')
+    // THE FIX IS HERE: Appending a timestamp forces the browser to fetch a fresh file, bypassing the cache.
+    const cacheBustingUrl = `nav.html?v=${new Date().getTime()}`;
+
+    fetch(cacheBustingUrl)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
