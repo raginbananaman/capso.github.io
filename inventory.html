@@ -79,8 +79,8 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<!-- The defer attribute ensures this script runs after the page is fully parsed -->
-<script src="inventory.js" defer></script>
+<!-- This script now runs without defer, as it waits for a custom event -->
+<script src="inventory.js"></script>
 
 </body>
 </html>
