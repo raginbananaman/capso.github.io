@@ -200,10 +200,6 @@ document.addEventListener('navigationLoaded', () => {
         if (orderModal) orderModal.classList.remove('hidden');
     }
     
-    // (The rest of the functions: addEditableItemRow, populateEditView, etc. remain the same)
-    // ... all your other functions from the original script.js go here ...
-    // I've included them all below for completeness.
-
     function addEditableItemRow(name = '', qty = '') {
         const itemsContainer = document.getElementById('items-container');
         if (!itemsContainer) return;
