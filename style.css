@@ -15,9 +15,11 @@ nav a.nav-link.active {
 }
 
 /* --- NEW: Mobile nav links --- */
+/* This styles the links inside the hamburger menu */
 a.nav-link-mobile {
     @apply text-gray-700 hover:bg-gray-700 hover:text-white;
 }
+/* This styles the active link inside the hamburger menu */
 a.nav-link-mobile.active {
     @apply bg-gray-900 text-white;
 }
