@@ -1,4 +1,9 @@
-document.addEventListener('DOMContentLoaded', () => {
+// This script will now wait for the 'navigationLoaded' event.
+// This guarantees that all elements from nav.html (like the notification toggle)
+// are present in the document before this script tries to find them.
+document.addEventListener('navigationLoaded', () => {
+    console.log("'navigationLoaded' event received. Initializing dashboard script.");
+
     // =================================================================
     // FIREBASE & PWA CONFIGURATION
     // =================================================================
@@ -11,11 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:389493283794:web:04af6938d8d8683271860b"
     };
 
-    // THIS IS THE VAPID KEY FOR WEB PUSH NOTIFICATIONS.
-    // GET THIS FROM: Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
     const VAPID_KEY = "YOUR_VAPID_KEY_HERE";
 
-    firebase.initializeApp(firebaseConfig);
+    // Check if Firebase is already initialized
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.firestore();
     const ordersCollection = db.collection("orders");
     const subscriptionsCollection = db.collection("subscriptions");
@@ -47,20 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentWeekDisplay = document.getElementById('current-week-display');
     const prevWeekBtn = document.getElementById('prev-week-btn');
     const nextWeekBtn = document.getElementById('next-week-btn');
+    
+    // These elements are loaded from nav.html, so we select them carefully
     const installAppBtn = document.getElementById('install-app-btn');
     const notificationToggle = document.getElementById('notification-toggle');
 
     // =================================================================
     // PWA & NOTIFICATIONS
     // =================================================================
-
-    // --- Service Worker Registration ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(registration => {
                     console.log('Service Worker registered successfully:', registration);
-                    // Check initial subscription status
                     return registration.pushManager.getSubscription();
                 })
                 .then(subscription => {
@@ -71,28 +76,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Custom Install Prompt ---
     window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault(); // Prevent the mini-infobar from appearing on mobile
-        deferredInstallPrompt = e; // Stash the event so it can be triggered later.
-        installAppBtn.classList.remove('hidden'); // Show the install button.
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        if (installAppBtn) installAppBtn.classList.remove('hidden');
         console.log('`beforeinstallprompt` event was fired.');
     });
 
-    installAppBtn.addEventListener('click', async () => {
-        if (!deferredInstallPrompt) return;
-        deferredInstallPrompt.prompt(); // Show the install prompt.
-        const { outcome } = await deferredInstallPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        if (outcome === 'accepted') {
-            installAppBtn.classList.add('hidden'); // Hide button after install
-        }
-        deferredInstallPrompt = null; // We can only use it once.
-    });
+    if (installAppBtn) {
+        installAppBtn.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            if (outcome === 'accepted') {
+                installAppBtn.classList.add('hidden');
+            }
+            deferredInstallPrompt = null;
+        });
+    }
 
-    // --- Push Notification Logic ---
     function updateNotificationUI() {
-        notificationToggle.checked = isNotificationSubscribed;
+        if (notificationToggle) {
+            notificationToggle.checked = isNotificationSubscribed;
+        }
     }
 
     function urlBase64ToUint8Array(base64String) {
@@ -108,11 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function subscribeUserToPush() {
         if (VAPID_KEY === "YOUR_VAPID_KEY_HERE") {
-            console.error("VAPID Key is not set in script.js. Please get it from your Firebase project settings.");
+            console.error("VAPID Key is not set in script.js.");
             alert("Notification setup is incomplete. Please contact the administrator.");
             return;
         }
-
         try {
             const registration = await navigator.serviceWorker.ready;
             const applicationServerKey = urlBase64ToUint8Array(VAPID_KEY);
@@ -120,8 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 userVisibleOnly: true,
                 applicationServerKey: applicationServerKey
             });
-
-            console.log('User is subscribed:', subscription);
             await subscriptionsCollection.doc(btoa(JSON.stringify(subscription))).set(subscription.toJSON());
             isNotificationSubscribed = true;
             updateNotificationUI();
@@ -139,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (subscription) {
                 await subscriptionsCollection.doc(btoa(JSON.stringify(subscription))).delete();
                 await subscription.unsubscribe();
-                console.log('User is unsubscribed.');
                 isNotificationSubscribed = false;
                 updateNotificationUI();
             }
@@ -147,44 +150,43 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error unsubscribing', err);
         }
     }
-    
-    notificationToggle.addEventListener('change', () => {
-        if (notificationToggle.checked) {
-            subscribeUserToPush();
-        } else {
-            unsubscribeUserFromPush();
-        }
-    });
+
+    if (notificationToggle) {
+        notificationToggle.addEventListener('change', () => {
+            if (notificationToggle.checked) {
+                subscribeUserToPush();
+            } else {
+                unsubscribeUserFromPush();
+            }
+        });
+    }
 
     // =================================================================
     // UI HELPERS & RENDERERS
     // =================================================================
     function showSkeleton(show) {
-        if (show) {
-            skeletonLoader.classList.remove('hidden');
-            ordersListContainer.classList.add('hidden');
-        } else {
-            skeletonLoader.classList.add('hidden');
-            ordersListContainer.classList.remove('hidden');
-        }
+        if (skeletonLoader) skeletonLoader.classList.toggle('hidden', !show);
+        if (ordersListContainer) ordersListContainer.classList.toggle('hidden', show);
     }
 
     function getStartOfWeek(date) {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         d.setDate(diff);
         d.setHours(0, 0, 0, 0);
         return d;
     }
 
     function setModalMode(mode) {
-        modalContentContainer.classList.toggle('edit-mode', mode === 'edit');
-        modalContentContainer.classList.toggle('view-mode', mode === 'view');
+        if (modalContentContainer) {
+            modalContentContainer.classList.toggle('edit-mode', mode === 'edit');
+            modalContentContainer.classList.toggle('view-mode', mode === 'view');
+        }
     }
 
     function closeModal() {
-        orderModal.classList.add('hidden');
+        if (orderModal) orderModal.classList.add('hidden');
     }
 
     function openModal(isNew, order = {}) {
@@ -195,11 +197,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isNew) populateDisplayView(order);
         document.getElementById('save-new-order-btn').classList.toggle('hidden', !isNew);
         document.getElementById('save-changes-btn').classList.toggle('hidden', isNew);
-        orderModal.classList.remove('hidden');
+        if (orderModal) orderModal.classList.remove('hidden');
     }
+    
+    // (The rest of the functions: addEditableItemRow, populateEditView, etc. remain the same)
+    // ... all your other functions from the original script.js go here ...
+    // I've included them all below for completeness.
 
     function addEditableItemRow(name = '', qty = '') {
         const itemsContainer = document.getElementById('items-container');
+        if (!itemsContainer) return;
         const row = document.createElement('div');
         row.className = 'flex items-center space-x-2';
         row.innerHTML = `
@@ -218,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('status-field-container').style.display = order.orderId ? 'block' : 'none';
 
         const itemsContainer = document.getElementById('items-container');
-        itemsContainer.innerHTML = '';
+        if (itemsContainer) itemsContainer.innerHTML = '';
         if (order.items && order.items.length) {
             order.items.forEach(i => addEditableItemRow(i.item, i.quantity));
         } else {
@@ -264,9 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return data;
     }
 
-    // =================================================================
-    // DATA FETCH & ACTIONS
-    // =================================================================
     async function fetchData() {
         showSkeleton(true);
         try {
@@ -275,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             render();
         } catch (e) {
             console.error("Error loading data:", e);
-            ordersListContainer.innerHTML = `<p class="text-center text-red-500 py-8">Error loading data. Please check connection.</p>`;
+            if (ordersListContainer) ordersListContainer.innerHTML = `<p class="text-center text-red-500 py-8">Error loading data. Please check connection.</p>`;
         } finally {
             showSkeleton(false);
         }
@@ -287,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Customer name is required.");
             return;
         }
-
         try {
             if (isNew) {
                 data.orderId = allOrders.length ? Math.max(...allOrders.map(o => o.orderId || 0)) + 1 : 1;
@@ -308,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleDelete() {
         try {
             await ordersCollection.doc(currentOrderInModal.docId).delete();
-            confirmDeleteModal.classList.add('hidden');
+            if (confirmDeleteModal) confirmDeleteModal.classList.add('hidden');
             await fetchData();
             closeModal();
         } catch (err) {
@@ -317,24 +320,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // =================================================================
-    // RENDER UI
-    // =================================================================
     function render() {
         renderOrdersList();
         renderCalendar();
     }
 
     function renderOrdersList() {
+        if (!ordersListContainer) return;
         const filtered = allOrders.filter(o => {
             if (!o) return false;
             if (currentFilter === 'All') return true;
             if (currentFilter === 'Active') return ['PENDING', 'SCHEDULED', 'OUT FOR DELIVERY'].includes(o.status);
             return o.status === currentFilter;
         });
-
         const paginated = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-
         ordersListContainer.innerHTML = paginated.map(order => {
             const statusClass = `status-${order.status.toLowerCase().replace(/ /g, '-')}`;
             return `
@@ -362,12 +361,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCalendar() {
+        if (!calendarGrid || !currentWeekDisplay) return;
         const start = getStartOfWeek(calendarDate);
         const end = new Date(start);
         end.setDate(start.getDate() + 6);
-
         currentWeekDisplay.textContent = `${start.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${end.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}`;
-        
         if (window.innerWidth < 768) {
             renderAgendaView(start);
         } else {
@@ -376,6 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderGridView(start, end) {
+        if (!calendarGrid) return;
         calendarGrid.className = 'grid grid-cols-7 gap-4';
         const weekOrders = allOrders.filter(order => {
             if (!order.scheduledDate) return false;
@@ -383,18 +382,15 @@ document.addEventListener('DOMContentLoaded', () => {
             d.setHours(0,0,0,0);
             return d >= start && d <= end;
         });
-
         const days = Array.from({ length: 7 }, (_, i) => {
             const d = new Date(start);
             d.setDate(d.getDate() + i);
             return d;
         });
-
         calendarGrid.innerHTML = days.map(day => {
             const dayStr = day.toISOString().split('T')[0];
             const ordersToday = weekOrders.filter(o => o.scheduledDate?.startsWith(dayStr));
             const list = ordersToday.map(o => `<li class="text-xs truncate bg-white p-1 rounded" title="${o.orderId} - ${o.customer}">${o.customer}</li>`).join('');
-            
             return `<div class="bg-gray-50 p-2 rounded-lg min-h-[120px]">
                 <div class="text-sm font-semibold text-center">${day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                 <div class="text-xs text-gray-500 mb-2 text-center">${day.getDate()}</div>
@@ -404,16 +400,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAgendaView(start) {
+        if (!calendarGrid) return;
         calendarGrid.className = 'flex overflow-x-auto snap-x snap-mandatory space-x-4 pb-4';
         let html = '';
-        
         for (let i = 0; i < 7; i++) {
             const day = new Date(start);
             day.setDate(day.getDate() + i);
             const dayStr = day.toISOString().split('T')[0];
             const ordersToday = allOrders.filter(o => o.scheduledDate?.startsWith(dayStr));
             const isToday = new Date().toDateString() === day.toDateString();
-
             html += `
                 <div class="snap-center flex-shrink-0 w-[85%] sm:w-[60%] md:w-[45%] bg-white rounded-xl shadow-lg p-4 ring-1 ring-gray-900/5">
                     <div class="flex justify-between items-center mb-3">
@@ -427,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             if(o.status === 'OUT FOR DELIVERY') iconSvg = '<svg class="w-5 h-5 text-orange-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M1.5 7.143a.75.75 0 0 1 .75-.75h1.23a.75.75 0 0 1 .743.648l.512 2.563a.75.75 0 0 1-.343.834L3.18 11.5a.75.75 0 0 1-.94-.312l-1.34-2.345a.75.75 0 0 1 .311-.95l.292-.15Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M4.623 8.384a.75.75 0 0 1 .743.648l.513 2.563a.75.75 0 0 1-.343.834l-1.206.603a.75.75 0 0 1-.94-.312l-1.34-2.345a.75.75 0 0 1 .311-.95l3.253-1.626Zm2.633-.001.023-.011a.75.75 0 0 1 1.018-.43l3.354 1.342a.75.75 0 0 1 .311.95l-1.34 2.345a.75.75 0 0 1-.95.311L6.34 11.5a.75.75 0 0 1-.343-.834l.513-2.563a.75.75 0 0 1 .743-.648ZM10.5 6.25a.75.75 0 0 0-1.5 0v2.5a.75.75 0 0 0 1.5 0v-2.5Z" clip-rule="evenodd" /><path d="M8.25 10a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z" /><path d="M14 6.25a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H14.75a.75.75 0 0 1-.75-.75Z" /><path d="M14 10a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" /><path d="M14 13.75a.75.75 0 0 1 .75-.75h2.25a.75.75 0 0 1 0 1.5H14.75a.75.75 0 0 1-.75-.75Z" /><path d="M14 17.5a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" /></svg>';
                             if(o.status === 'COMPLETE') iconSvg = '<svg class="w-5 h-5 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.06 0l4-5.5Z" clip-rule="evenodd" /></svg>';
                             if(o.status === 'CANCELED') iconSvg = '<svg class="w-5 h-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>';
-
                             return `
                                 <div class="flex items-start space-x-3 bg-gray-50 p-2.5 rounded-lg">
                                     <div class="mt-0.5">${iconSvg}</div>
@@ -449,70 +443,79 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
         calendarGrid.innerHTML = html;
-
         const todayCard = document.querySelector('.bg-yellow-300');
         if (todayCard) {
             todayCard.parentElement.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
     }
 
-
     // =================================================================
     // EVENT HANDLERS
     // =================================================================
-    addNewOrderBtn.addEventListener('click', () => openModal(true));
+    if (addNewOrderBtn) addNewOrderBtn.addEventListener('click', () => openModal(true));
 
-    ordersListContainer.addEventListener('click', e => {
-        const btn = e.target.closest('.view-details-btn');
-        if (!btn) return;
-        const order = allOrders.find(o => o.orderId == btn.dataset.orderId);
-        if (order) openModal(false, order);
-    });
-
-    orderModal.addEventListener('click', e => {
-        const t = e.target;
-        if (t.closest('.modal-cancel')) closeModal();
-        if (t.closest('#edit-order-btn')) setModalMode('edit');
-        if (t.closest('#save-new-order-btn')) handleSave(true);
-        if (t.closest('#save-changes-btn')) handleSave(false);
-        if (t.closest('#delete-order-btn')) {
-            document.getElementById('confirm-delete-message').textContent = `Delete order #${currentOrderInModal.orderId}?`;
-            confirmDeleteModal.classList.remove('hidden');
-        }
-        if (t.closest('#add-item-btn')) addEditableItemRow();
-        if (t.closest('.remove-item-btn')) t.closest('.flex').remove();
-    });
-
-    confirmDeleteModal.addEventListener('click', e => {
-        if (e.target.closest('#cancel-delete-btn')) confirmDeleteModal.classList.add('hidden');
-        if (e.target.closest('#confirm-delete-btn')) handleDelete();
-    });
-
-    filterContainer.addEventListener('click', e => {
-        const btn = e.target.closest('.filter-btn');
-        if (!btn) return;
-        filterContainer.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.remove('bg-gray-800', 'text-white');
-            b.classList.add('bg-white', 'text-gray-700', 'ring-1', 'ring-inset', 'ring-gray-300', 'hover:bg-gray-50');
+    if (ordersListContainer) {
+        ordersListContainer.addEventListener('click', e => {
+            const btn = e.target.closest('.view-details-btn');
+            if (!btn) return;
+            const order = allOrders.find(o => o.orderId == btn.dataset.orderId);
+            if (order) openModal(false, order);
         });
-        btn.classList.add('bg-gray-800', 'text-white');
-        btn.classList.remove('bg-white', 'text-gray-700', 'ring-1', 'ring-inset', 'ring-gray-300', 'hover:bg-gray-50');
-        currentFilter = btn.dataset.filter;
-        renderOrdersList();
-    });
+    }
 
-    prevWeekBtn.addEventListener('click', () => {
-        calendarDate.setDate(calendarDate.getDate() - 7);
-        renderCalendar();
-    });
+    if (orderModal) {
+        orderModal.addEventListener('click', e => {
+            const t = e.target;
+            if (t.closest('.modal-cancel')) closeModal();
+            if (t.closest('#edit-order-btn')) setModalMode('edit');
+            if (t.closest('#save-new-order-btn')) handleSave(true);
+            if (t.closest('#save-changes-btn')) handleSave(false);
+            if (t.closest('#delete-order-btn')) {
+                document.getElementById('confirm-delete-message').textContent = `Delete order #${currentOrderInModal.orderId}?`;
+                if (confirmDeleteModal) confirmDeleteModal.classList.remove('hidden');
+            }
+            if (t.closest('#add-item-btn')) addEditableItemRow();
+            if (t.closest('.remove-item-btn')) t.closest('.flex').remove();
+        });
+    }
 
-    nextWeekBtn.addEventListener('click', () => {
-        calendarDate.setDate(calendarDate.getDate() + 7);
-        renderCalendar();
-    });
+    if (confirmDeleteModal) {
+        confirmDeleteModal.addEventListener('click', e => {
+            if (e.target.closest('#cancel-delete-btn')) confirmDeleteModal.classList.add('hidden');
+            if (e.target.closest('#confirm-delete-btn')) handleDelete();
+        });
+    }
+
+    if (filterContainer) {
+        filterContainer.addEventListener('click', e => {
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+            filterContainer.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-gray-800', 'text-white');
+                b.classList.add('bg-white', 'text-gray-700', 'ring-1', 'ring-inset', 'ring-gray-300', 'hover:bg-gray-50');
+            });
+            btn.classList.add('bg-gray-800', 'text-white');
+            btn.classList.remove('bg-white', 'text-gray-700', 'ring-1', 'ring-inset', 'ring-gray-300', 'hover:bg-gray-50');
+            currentFilter = btn.dataset.filter;
+            renderOrdersList();
+        });
+    }
+
+    if (prevWeekBtn) {
+        prevWeekBtn.addEventListener('click', () => {
+            calendarDate.setDate(calendarDate.getDate() - 7);
+            renderCalendar();
+        });
+    }
+
+    if (nextWeekBtn) {
+        nextWeekBtn.addEventListener('click', () => {
+            calendarDate.setDate(calendarDate.getDate() + 7);
+            renderCalendar();
+        });
+    }
 
     window.addEventListener('resize', renderCalendar);
-
 
     // =================================================================
     // INIT
