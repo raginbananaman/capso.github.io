@@ -46,7 +46,16 @@
       </div>
       
       <div id="skeleton-loader" class="space-y-4">
-        <!-- Skeleton loader content... -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+            <div class="p-4 sm:p-6 h-28">
+                <div class="h-4 bg-gray-200 rounded w-1/4 mb-3"></div>
+                <div class="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
+                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+            <div class="px-4 py-3 sm:px-6 bg-gray-50 h-14">
+                <div class="h-9 bg-gray-200 rounded w-full"></div>
+            </div>
+        </div>
       </div>
       
       <div class="space-y-4" id="orders-list-container"></div>
@@ -55,12 +64,92 @@
   </main>
 </div>
 
-<!-- All modals remain the same... -->
+<!-- THIS IS THE MODAL HTML THAT WAS MISSING -->
 <div id="order-modal" class="hidden relative z-30">
-    <!-- Modal content... -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div id="modal-content-container" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl sm:my-8 sm:w-full sm:max-w-lg">
+          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title"></h3>
+            
+            <div class="display-view mt-4 space-y-3">
+                <div class="flex justify-between text-sm"><strong class="text-gray-500">Order ID:</strong> <span id="display-order-id"></span></div>
+                <div class="flex justify-between text-sm"><strong class="text-gray-500">Date Created:</strong> <span id="display-date-created"></span></div>
+                <div class="border-t pt-3 mt-3"><strong>Customer:</strong> <p id="display-customer-name" class="text-gray-800"></p></div>
+                <div><strong>Address:</strong> <p id="display-customer-address" class="text-gray-800"></p></div>
+                <div class="border-t pt-3 mt-3"><strong>Items:</strong><div id="display-items-list" class="mt-1"></div></div>
+                <div class="border-t pt-3 mt-3 flex justify-between items-center"><strong class="text-gray-500">Scheduled Date:</strong> <span id="display-schedule-date" class="font-semibold text-gray-800"></span></div>
+                <div class="flex justify-between items-center"><strong class="text-gray-500">Status:</strong> <span id="display-status"></span></div>
+            </div>
+
+           <div class="edit-view mt-4 space-y-4">
+                <div id="form-content">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="customer-name" class="block text-sm font-medium text-gray-700">Customer Name</label>
+                            <input type="text" id="customer-name" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-indigo-200" placeholder="Enter customer name">
+                        </div>
+                        <div>
+                            <label for="customer-address" class="block text-sm font-medium text-gray-700">Address</label>
+                            <textarea id="customer-address" rows="2" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-indigo-200" placeholder="Enter address"></textarea>
+                        </div>
+                        <div>
+                            <label for="schedule-date" class="block text-sm font-medium text-gray-700">Schedule Date</label>
+                            <input type="date" id="schedule-date" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-indigo-200">
+                        </div>
+                        <div id="status-field-container">
+                            <label for="status" class="block text-sm font-medium text-gray-700">Order Status</label>
+                            <select id="status" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring focus:ring-indigo-200">
+                                <option value="PENDING">Pending</option>
+                                <option value="SCHEDULED">Scheduled</option>
+                                <option value="OUT FOR DELIVERY">Out for Delivery</option>
+                                <option value="COMPLETE">Complete</option>
+                                <option value="CANCELED">Canceled</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Items</label>
+                            <div id="items-container" class="space-y-2"></div>
+                            <button type="button" id="add-item-btn" class="mt-2 inline-flex items-center rounded bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-300">
+                                + Add Item
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+          </div>
+
+            <div class="bg-gray-50 px-4 py-3 sm:px-6" id="modal-footer">
+                <div class="view-mode-buttons flex justify-end space-x-2">
+                    <button type="button" class="modal-cancel rounded-md bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100">Close</button>
+                    <button type="button" id="edit-order-btn" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">Edit</button>
+                    <button type="button" id="delete-order-btn" class="rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">Delete</button>
+                </div>
+                <div class="edit-mode-buttons flex justify-between items-center space-x-2 mt-4">
+                    <button type="button" class="modal-cancel rounded-md bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-300 hover:bg-gray-100">Cancel</button>
+                    <button type="button" id="save-new-order-btn" class="rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 hidden">Save New</button>
+                    <button type="button" id="save-changes-btn" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 hidden">Save Changes</button>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
 </div>
 <div id="confirm-delete-modal" class="hidden relative z-40">
-    <!-- Modal content... -->
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl sm:my-8 sm:w-full sm:max-w-lg">
+            <h3 class="text-base font-semibold">Delete Order</h3><p class="text-sm text-gray-500" id="confirm-delete-message">Are you sure?</p>
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+                <button id="confirm-delete-btn" type="button" class="w-full justify-center rounded-md bg-red-600 px-3 py-2 text-white">Delete</button>
+                <button id="cancel-delete-btn" type="button" class="mt-3 w-full justify-center rounded-md bg-white px-3 py-2 ring-1 ring-inset ring-gray-300 sm:mt-0">Cancel</button>
+            </div>
+        </div>
+      </div>
+    </div>
 </div>
 
 <!-- Scripts MUST be in this order -->
