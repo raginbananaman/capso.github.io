@@ -54,7 +54,8 @@ document.addEventListener('navigationLoaded', () => {
         inventoryTableBody.innerHTML = items.map(item => {
             const itemName = item.itemName || 'Unnamed Item';
             const category = item.category || 'N/A';
-            const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice.toFixed(2) : '0.00';
+            // Use toLocaleString to format the number with commas and two decimal places
+            const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
             const stockStatus = item.stockStatus || 'Unknown';
             let statusColorClass = 'text-gray-600 bg-gray-100';
             if (stockStatus === 'In Stock') statusColorClass = 'text-green-800 bg-green-100';
@@ -90,19 +91,22 @@ document.addEventListener('navigationLoaded', () => {
 
         quoteBody.innerHTML = quoteItems.map(item => {
             const itemTotal = item.quantity * item.unitPrice;
+            // Format the item total with commas
+            const formattedItemTotal = itemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             return `
                 <div class="flex justify-between items-center text-sm py-2 border-b border-gray-100">
                     <div class="flex-grow pr-2">
                         <p class="font-medium text-gray-800">${item.itemName}</p>
                         <p class="text-gray-500">Qty: ${item.quantity}</p>
                     </div>
-                    <p class="font-semibold text-gray-900">₱${itemTotal.toFixed(2)}</p>
+                    <p class="font-semibold text-gray-900">₱${formattedItemTotal}</p>
                 </div>
             `;
         }).join('');
 
         const grandTotal = quoteItems.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
-        grandTotalSpan.textContent = grandTotal.toFixed(2);
+        // Format the grand total with commas
+        grandTotalSpan.textContent = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     /**
