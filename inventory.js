@@ -155,23 +155,27 @@ document.addEventListener('navigationLoaded', () => {
             return;
         }
 
-        let quoteText = "CAPSo Hardware Quotation\n";
-        quoteText += "=========================\n\n";
+        const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        const generatedDate = new Date().toLocaleDateString('en-US', dateOptions);
+
+        let quoteText = "🧾 CAPSo Hardware Quotation\n";
+        quoteText += `📅 Generated on: ${generatedDate}\n`;
+        quoteText += "-----------------------------------------------\n";
 
         quoteItems.forEach(item => {
             const itemTotal = item.quantity * item.unitPrice;
             const formattedPrice = item.unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const formattedTotal = itemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             quoteText += `${item.itemName}\n`;
-            quoteText += `  ${item.quantity} x ₱${formattedPrice} = ₱${formattedTotal}\n\n`;
+            // \u2003 is an "em space", a wide space for alignment.
+            quoteText += `\u2003${item.quantity} × ₱${formattedPrice}\u2003\u2003= ₱${formattedTotal}\n\n`;
         });
 
         const grandTotal = quoteItems.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
         const formattedGrandTotal = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         
-        quoteText += "=========================\n";
-        quoteText += `GRAND TOTAL: ₱${formattedGrandTotal}\n`;
-        quoteText += `Quotation generated on: ${new Date().toLocaleString()}`;
+        quoteText += "-----------------------------------------------\n";
+        quoteText += `GRAND TOTAL: ₱${formattedGrandTotal}`;
 
         // Use the clipboard API
         const textarea = document.createElement('textarea');
