@@ -1,13 +1,11 @@
-// This script will run on the inventory.html page.
-// It waits for the main page structure to load before running.
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("Inventory page loaded. Initializing script.");
+// This script now waits for our custom 'navigationLoaded' event.
+// This guarantees that both the navigation AND the Firebase libraries are ready before it runs.
+document.addEventListener('navigationLoaded', () => {
+    console.log("Inventory page 'navigationLoaded' event received. Initializing script.");
 
     // =================================================================
     // FIREBASE CONFIGURATION
     // =================================================================
-    // Note: It's okay to re-initialize Firebase here. It won't create a new connection
-    // if one from the dashboard page already exists, but this makes the page work independently.
     const firebaseConfig = {
         apiKey: "AIzaSyCjKJmXAJ0C8v1To1tFaAyucfo8YRFTjcw",
         authDomain: "capso-dashboard-pwa.firebaseapp.com",
@@ -48,27 +46,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // If there are no items, show a message.
         if (items.length === 0) {
             inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-500">No inventory items found.</td></tr>`;
             return;
         }
 
-        // Generate the HTML for each item and join them together.
         inventoryTableBody.innerHTML = items.map(item => {
-            // Safely handle potentially missing data with default values
             const itemName = item.itemName || 'Unnamed Item';
             const category = item.category || 'N/A';
             const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice.toFixed(2) : '0.00';
             const stockStatus = item.stockStatus || 'Unknown';
 
-            // Determine the color for the stock status badge
-            let statusColorClass = 'text-gray-600 bg-gray-100'; // Default for 'Unknown'
+            let statusColorClass = 'text-gray-600 bg-gray-100';
             if (stockStatus === 'In Stock') statusColorClass = 'text-green-800 bg-green-100';
             if (stockStatus === 'Low Stock') statusColorClass = 'text-yellow-800 bg-yellow-100';
             if (stockStatus === 'Out of Stock') statusColorClass = 'text-red-800 bg-red-100';
 
-            // Return the HTML table row for the item
             return `
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${itemName}</td>
@@ -93,15 +86,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchInventory() {
         if (!inventoryTableBody) return;
         
-        // Show a loading state
         inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-500">Loading inventory...</td></tr>`;
 
         try {
             const snapshot = await inventoryCollection.get();
-            // Map the documents to an array of objects, including their unique Firestore document ID.
             allInventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log("Fetched inventory:", allInventory);
-            renderInventory(allInventory); // Render the fetched items
+            renderInventory(allInventory);
         } catch (error) {
             console.error("Error fetching inventory: ", error);
             inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500">Error loading inventory. Please check the connection and console.</td></tr>`;
@@ -111,6 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // INITIALIZATION
     // =================================================================
-    fetchInventory(); // Fetch and display the data when the script runs
+    fetchInventory();
 
 });
