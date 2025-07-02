@@ -1,5 +1,4 @@
 // This script now waits for our custom 'navigationLoaded' event.
-// This guarantees that both the navigation AND the Firebase libraries are ready before it runs.
 document.addEventListener('navigationLoaded', () => {
     console.log("Inventory page 'navigationLoaded' event received. Initializing script.");
 
@@ -26,11 +25,17 @@ document.addEventListener('navigationLoaded', () => {
     // =================================================================
     const inventoryTableBody = document.getElementById('inventory-body');
     const searchInput = document.getElementById('searchInput');
+    // --- New selectors for the quotation builder ---
+    const quoteBody = document.getElementById('quote-body');
+    const grandTotalSpan = document.getElementById('grand-total');
+    const clearQuoteBtn = document.getElementById('clear-quote-btn');
+
 
     // =================================================================
     // STATE
     // =================================================================
     let allInventory = []; // This will store all items fetched from Firebase
+    let quoteItems = []; // This will store items added to the current quote
 
     // =================================================================
     // FUNCTIONS
@@ -41,36 +46,27 @@ document.addEventListener('navigationLoaded', () => {
      * @param {Array} items - An array of inventory item objects to render.
      */
     function renderInventory(items) {
-        if (!inventoryTableBody) {
-            console.error("Inventory table body not found!");
-            return;
-        }
-
+        if (!inventoryTableBody) return;
         if (items.length === 0) {
             inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-500">No inventory items found.</td></tr>`;
             return;
         }
-
         inventoryTableBody.innerHTML = items.map(item => {
             const itemName = item.itemName || 'Unnamed Item';
             const category = item.category || 'N/A';
             const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice.toFixed(2) : '0.00';
             const stockStatus = item.stockStatus || 'Unknown';
-
             let statusColorClass = 'text-gray-600 bg-gray-100';
             if (stockStatus === 'In Stock') statusColorClass = 'text-green-800 bg-green-100';
             if (stockStatus === 'Low Stock') statusColorClass = 'text-yellow-800 bg-yellow-100';
             if (stockStatus === 'Out of Stock') statusColorClass = 'text-red-800 bg-red-100';
-
             return `
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${itemName}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${category}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₱${unitPrice}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColorClass}">
-                            ${stockStatus}
-                        </span>
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColorClass}">${stockStatus}</span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button class="add-to-quote-btn text-indigo-600 hover:text-indigo-900" data-id="${item.id}">Add to Quote</button>
@@ -81,13 +77,40 @@ document.addEventListener('navigationLoaded', () => {
     }
 
     /**
+     * Renders the items in the quoteItems array into the quotation builder UI.
+     */
+    function renderQuote() {
+        if (!quoteBody || !grandTotalSpan) return;
+
+        if (quoteItems.length === 0) {
+            quoteBody.innerHTML = `<p class="text-sm text-gray-500 text-center py-8">No items added yet.</p>`;
+            grandTotalSpan.textContent = '0.00';
+            return;
+        }
+
+        quoteBody.innerHTML = quoteItems.map(item => {
+            const itemTotal = item.quantity * item.unitPrice;
+            return `
+                <div class="flex justify-between items-center text-sm py-2 border-b border-gray-100">
+                    <div class="flex-grow pr-2">
+                        <p class="font-medium text-gray-800">${item.itemName}</p>
+                        <p class="text-gray-500">Qty: ${item.quantity}</p>
+                    </div>
+                    <p class="font-semibold text-gray-900">₱${itemTotal.toFixed(2)}</p>
+                </div>
+            `;
+        }).join('');
+
+        const grandTotal = quoteItems.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
+        grandTotalSpan.textContent = grandTotal.toFixed(2);
+    }
+
+    /**
      * Fetches all documents from the 'inventory' collection in Firestore.
      */
     async function fetchInventory() {
         if (!inventoryTableBody) return;
-        
         inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-gray-500">Loading inventory...</td></tr>`;
-
         try {
             const snapshot = await inventoryCollection.get();
             allInventory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -95,13 +118,56 @@ document.addEventListener('navigationLoaded', () => {
             renderInventory(allInventory);
         } catch (error) {
             console.error("Error fetching inventory: ", error);
-            inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500">Error loading inventory. Please check the connection and console.</td></tr>`;
+            inventoryTableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500">Error loading inventory.</td></tr>`;
         }
     }
 
     // =================================================================
+    // EVENT HANDLERS
+    // =================================================================
+
+    // Event listener for the main inventory table
+    if (inventoryTableBody) {
+        inventoryTableBody.addEventListener('click', (e) => {
+            // Check if an "Add to Quote" button was clicked
+            if (e.target.classList.contains('add-to-quote-btn')) {
+                const itemId = e.target.dataset.id;
+                const itemToAdd = allInventory.find(item => item.id === itemId);
+
+                if (itemToAdd) {
+                    const quantity = parseInt(prompt(`Enter quantity for ${itemToAdd.itemName}:`, '1'), 10);
+                    if (!isNaN(quantity) && quantity > 0) {
+                        // Check if item is already in the quote
+                        const existingQuoteItem = quoteItems.find(item => item.id === itemId);
+                        if (existingQuoteItem) {
+                            // If it exists, just update the quantity
+                            existingQuoteItem.quantity += quantity;
+                        } else {
+                            // If it's a new item, add it to the quote list
+                            quoteItems.push({ ...itemToAdd, quantity: quantity });
+                        }
+                        renderQuote(); // Re-render the quote list
+                    }
+                }
+            }
+        });
+    }
+
+    // Event listener for the "Clear" button in the quote section
+    if (clearQuoteBtn) {
+        clearQuoteBtn.addEventListener('click', () => {
+            if (confirm("Are you sure you want to clear the entire quote?")) {
+                quoteItems = []; // Empty the quote array
+                renderQuote(); // Re-render the empty quote list
+            }
+        });
+    }
+
+
+    // =================================================================
     // INITIALIZATION
     // =================================================================
-    fetchInventory();
+    fetchInventory(); // Fetch and display the inventory data
+    renderQuote(); // Render the initial empty quote list
 
 });
